@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Google Location Changer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white shadow-xl rounded-xl p-8 max-w-xl w-full">
+    <h2 class="text-2xl font-bold mb-6 text-center">🌍 Free Google Location Changer</h2>
+
+    <label class="block font-semibold mb-2" for="keyword">🔎 Enter your keyword:</label>
+    <input type="text" id="keyword" placeholder="e.g., best digital cameras"
+           class="w-full p-3 border border-gray-300 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+    <label class="block font-semibold mb-2" for="location">🌐 Select Location:</label>
+    <select id="location" class="w-full p-3 border border-gray-300 rounded-md mb-4">
+      <option value="us" data-flag="🇺🇸">🇺🇸 United States</option>
+      <option value="in" data-flag="🇮🇳">🇮🇳 India</option>
+      <option value="gb" data-flag="🇬🇧">🇬🇧 United Kingdom</option>
+      <option value="ca" data-flag="🇨🇦">🇨🇦 Canada</option>
+      <option value="au" data-flag="🇦🇺">🇦🇺 Australia</option>
+      <option value="fr" data-flag="🇫🇷">🇫🇷 France</option>
+      <option value="de" data-flag="🇩🇪">🇩🇪 Germany</option>
+      <option value="jp" data-flag="🇯🇵">🇯🇵 Japan</option>
+    </select>
+
+    <label class="block font-semibold mb-2" for="language">🈯 Select Language:</label>
+    <select id="language" class="w-full p-3 border border-gray-300 rounded-md mb-6">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="fr">French</option>
+      <option value="de">German</option>
+      <option value="es">Spanish</option>
+      <option value="ja">Japanese</option>
+    </select>
+
+    <button onclick="openGoogleSearch()"
+            class="w-full bg-blue-600 text-white font-semibold py-3 rounded-md hover:bg-blue-700 transition">
+      🔍 Search on Google
+    </button>
+  </div>
+
+  <script>
+    function openGoogleSearch() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const location = document.getElementById('location').value;
+      const language = document.getElementById('language').value;
+
+      if (!keyword) {
+        alert("Please enter a keyword to search.");
+        return;
+      }
+
+      const encodedKeyword = encodeURIComponent(keyword);
+      const url = `https://www.google.com/search?q=${encodedKeyword}&gl=${location}&hl=${language}`;
+
+      window.open(url, '_blank');
+    }
+  </script>
+
+</body>
+</html>

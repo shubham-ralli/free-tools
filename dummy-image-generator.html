@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dummy Image Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .form-panel, .preview-panel {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      flex: 1 1 300px;
+    }
+    .form-panel label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    .form-panel input,
+    .form-panel select,
+    .form-panel button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-panel button {
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    .form-panel button:hover {
+      background: #0056b3;
+    }
+    .preview-panel {
+      text-align: center;
+    }
+    #preview {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    #downloadBtn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: #28a745;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    #downloadBtn:hover {
+      background: #1e7e34;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="form-panel">
+      <h2 style="text-align:center;">Dummy Image Generator</h2>
+      <label for="width">Width (px)</label>
+      <input type="number" id="width" value="600" min="1" />
+
+      <label for="height">Height (px)</label>
+      <input type="number" id="height" value="600" min="1" />
+
+      <label for="bgColor">Background Color</label>
+      <input type="color" id="bgColor" value="#cccccc" />
+
+      <label for="fgColor">Foreground (Text) Color</label>
+      <input type="color" id="fgColor" value="#333333" />
+
+      <label for="format">Format</label>
+      <select id="format">
+        <option value="png">PNG</option>
+        <option value="jpg">JPG</option>
+        <option value="gif">GIF</option>
+      </select>
+
+      <button id="generate">Generate</button>
+    </div>
+
+    <div class="preview-panel">
+      <h2 style="margin-top:0;">Live Preview</h2>
+      <canvas id="dummyCanvas" style="display:none;"></canvas>
+      <img id="preview" alt="Your dummy image" />
+      <br />
+      <a id="downloadBtn" href="#" download>Download Image</a>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script>
+    $(function(){
+      function generate() {
+        const w = parseInt($('#width').val(), 10) || 100;
+        const h = parseInt($('#height').val(), 10) || 100;
+        const bg = $('#bgColor').val();
+        const fg = $('#fgColor').val();
+        const fmt = $('#format').val();
+
+        const canvas = document.getElementById('dummyCanvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = fg;
+        const text = `${w}×${h}`;
+        const fontSize = Math.floor(w / Math.max(text.length, 1));
+        ctx.font = fontSize + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, w/2, h/2);
+
+        let mime = 'image/png';
+        if (fmt === 'jpg') mime = 'image/jpeg';
+        else if (fmt === 'gif') mime = 'image/png';
+
+        const dataURL = canvas.toDataURL(mime);
+        $('#preview').attr('src', dataURL);
+
+        const fileName = `dummy-${w}x${h}.${fmt}`;
+        $('#downloadBtn').attr('href', dataURL).attr('download', fileName);
+      }
+
+      // Live update on input changes
+      $('#width, #height, #bgColor, #fgColor, #format').on('input change', generate);
+      $('#generate').on('click', generate);
+
+      // Initial generate
+      generate();
+    });
+  </script>
+</body>
+</html>

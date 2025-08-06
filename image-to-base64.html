@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image → Base64 Converter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+
+  <style>
+    body { background: #f8f9fa; padding: 40px; }
+    #preview { 
+      min-height: 200px; 
+      border: 1px solid #dee2e6; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="mb-4 text-center">🖼️ Image to Base64 Converter</h1>
+    <div class="row">
+      <!-- Left: file picker & preview -->
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label for="imageInput" class="form-label">Choose an Image</label>
+          <input
+            type="file"
+            id="imageInput"
+            class="form-control"
+            accept="image/*"
+          >
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Preview</label>
+          <div id="preview">
+            <span class="text-muted">No image selected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: outputs with copy buttons -->
+      <div class="col-md-6">
+        <!-- Base64 string -->
+        <div class="mb-3">
+          <label for="base64Output" class="form-label">Base64 Output</label>
+          <div class="input-group">
+            <textarea
+              id="base64Output"
+              class="form-control"
+              rows="3"
+              readonly
+            ></textarea>
+            <button
+              class="btn btn-outline-secondary copy-btn"
+              data-target="base64Output"
+              type="button"
+            >Copy</button>
+          </div>
+        </div>
+
+        <!-- <img> tag -->
+        <div class="mb-3">
+          <label for="imgTagOutput" class="form-label">Use in &lt;img&gt; tag</label>
+          <div class="input-group">
+            <textarea
+              id="imgTagOutput"
+              class="form-control"
+              rows="2"
+              readonly
+            ></textarea>
+            <button
+              class="btn btn-outline-secondary copy-btn"
+              data-target="imgTagOutput"
+              type="button"
+            >Copy</button>
+          </div>
+        </div>
+
+        <!-- CSS background-image -->
+        <div class="mb-3">
+          <label for="cssOutput" class="form-label">Use in CSS</label>
+          <div class="input-group">
+            <textarea
+              id="cssOutput"
+              class="form-control"
+              rows="2"
+              readonly
+            ></textarea>
+            <button
+              class="btn btn-outline-secondary copy-btn"
+              data-target="cssOutput"
+              type="button"
+            >Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery & Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+  ></script>
+
+  <script>
+    $(function() {
+      $('#imageInput').on('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) {
+          $('#preview').html('<span class="text-muted">No image selected</span>');
+          $('#base64Output, #imgTagOutput, #cssOutput').val('');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const dataURL = evt.target.result;
+          // Live preview
+          $('#preview').html(
+            `<img src="${dataURL}" class="img-fluid" alt="Preview">`
+          );
+          // Fill outputs
+          const base64String = dataURL.split(',')[1];
+          $('#base64Output').val(base64String);
+          $('#imgTagOutput').val(`<img src="${dataURL}" alt="${file.name}">`);
+          $('#cssOutput').val(`background-image: url("${dataURL}");`);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      $('.copy-btn').on('click', function() {
+        const targetId = $(this).data('target');
+        const $ta = $('#' + targetId);
+        $ta.prop('readonly', false).select();
+        document.execCommand('copy');
+        $ta.prop('readonly', true);
+
+        // Button feedback
+        const $btn = $(this);
+        $btn
+          .text('Copied!')
+          .removeClass('btn-outline-secondary')
+          .addClass('btn-success');
+        setTimeout(() => {
+          $btn
+            .text('Copy')
+            .removeClass('btn-success')
+            .addClass('btn-outline-secondary');
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

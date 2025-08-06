@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced URL Cleaner Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: #f1f3f5;
+      padding: 40px;
+    }
+    textarea {
+      resize: vertical;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1 class="mb-4">🔗 Advanced URL Cleaner Tool</h1>
+
+  <div class="mb-3">
+    <label for="inputTextarea" class="form-label">Enter or Paste URLs (one per line):</label>
+    <textarea id="inputTextarea" class="form-control" rows="10" placeholder="https://example.com/page1"></textarea>
+  </div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-md-3"><button class="btn btn-primary w-100" id="trimRoot">Trim to Root</button></div>
+    <div class="col-md-3"><button class="btn btn-primary w-100" id="trimSubfolder">Trim to Subfolder</button></div>
+    <div class="col-md-3"><button class="btn btn-secondary w-100" id="removeDupUrls">Remove Duplicate URLs</button></div>
+    <div class="col-md-3"><button class="btn btn-secondary w-100" id="removeDupDomains">Remove Duplicate Domains</button></div>
+    <div class="col-md-3"><button class="btn btn-danger w-100" id="removeHttps">Remove HTTPS & WWW</button></div>
+    <div class="col-md-3"><button class="btn btn-success w-100" id="addHttpWww">Add http://www.</button></div>
+    <div class="col-md-3"><button class="btn btn-dark w-100" id="sortAZ">Sort A–Z</button></div>
+    <div class="col-md-3"><button class="btn btn-dark w-100" id="sortZA">Sort Z–A</button></div>
+    <div class="col-md-3"><button class="btn btn-warning w-100" id="removeEmpty">Remove Empty Lines</button></div>
+    <div class="col-md-3"><button class="btn btn-outline-primary w-100" id="copyUrls">📋 Copy Result</button></div>
+    <div class="col-md-3"><button class="btn btn-outline-success w-100" id="downloadUrls">⬇️ Download Result</button></div>
+    <div class="col-md-3"><button class="btn btn-outline-danger w-100" id="clearAll">🧹 Clear All</button></div>
+  </div>
+
+  <div class="mb-3">
+    <label for="outputTextarea" class="form-label">🔍 Cleaned Output:</label>
+    <textarea id="outputTextarea" class="form-control" rows="10" readonly placeholder="Cleaned URLs will appear here..."></textarea>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script>
+function getLines() {
+  return $('#inputTextarea').val().split('\n').map(line => line.trim()).filter(line => line !== '');
+}
+
+function setOutput(lines) {
+  $('#outputTextarea').val(lines.join('\n'));
+}
+
+// --- Features ---
+$('#trimRoot').click(() => {
+  const result = getLines().map(url => {
+    try {
+      let u = new URL(url);
+      return `${u.protocol}//${u.hostname}`;
+    } catch {
+      return url;
+    }
+  });
+  setOutput(result);
+});
+
+$('#trimSubfolder').click(() => {
+  const result = getLines().map(url => {
+    try {
+      let u = new URL(url);
+      let firstPath = u.pathname.split('/').filter(Boolean)[0];
+      return `${u.protocol}//${u.hostname}/${firstPath || ''}`;
+    } catch {
+      return url;
+    }
+  });
+  setOutput(result);
+});
+
+$('#removeDupUrls').click(() => {
+  const result = [...new Set(getLines())];
+  setOutput(result);
+});
+
+$('#removeDupDomains').click(() => {
+  const seen = new Set();
+  const result = getLines().filter(url => {
+    try {
+      let u = new URL(url);
+      if (seen.has(u.hostname)) return false;
+      seen.add(u.hostname);
+      return true;
+    } catch {
+      return true;
+    }
+  });
+  setOutput(result);
+});
+
+$('#removeHttps').click(() => {
+  const result = getLines().map(url =>
+    url.replace(/^https?:\/\//i, '').replace(/^www\./i, '')
+  );
+  setOutput(result);
+});
+
+$('#addHttpWww').click(() => {
+  const result = getLines().map(url => {
+    url = url.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+    return 'http://www.' + url;
+  });
+  setOutput(result);
+});
+
+$('#sortAZ').click(() => {
+  const result = getLines().sort((a, b) => a.localeCompare(b));
+  setOutput(result);
+});
+
+$('#sortZA').click(() => {
+  const result = getLines().sort((a, b) => b.localeCompare(a));
+  setOutput(result);
+});
+
+$('#removeEmpty').click(() => {
+  const result = getLines().filter(line => line !== '');
+  setOutput(result);
+});
+
+$('#copyUrls').click(() => {
+  const output = document.getElementById('outputTextarea');
+  output.select();
+  document.execCommand('copy');
+  alert('✅ Cleaned URLs copied to clipboard!');
+});
+
+$('#downloadUrls').click(() => {
+  const blob = new Blob([$('#outputTextarea').val()], { type: 'text/plain' });
+  const link = document.createElement('a');
+  link.download = 'cleaned-urls.txt';
+  link.href = window.URL.createObjectURL(blob);
+  link.click();
+});
+
+$('#clearAll').click(() => {
+  $('#inputTextarea').val('');
+  $('#outputTextarea').val('');
+});
+</script>
+
+</body>
+</html>

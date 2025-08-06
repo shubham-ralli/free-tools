@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Free Image Upscaler</title>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      background-color: #f2f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 2rem;
+    }
+    .tool-container {
+      background: #fff;
+      border-radius: .75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      max-width: 960px;
+      margin: auto;
+    }
+    .tool-header {
+      background: #007bff;
+      color: #fff;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .tool-body {
+      padding: 2rem;
+    }
+    .preview-canvas {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: .5rem;
+      background: #fafafa;
+    }
+    .info-text {
+      font-size: 0.9rem;
+      color: #555;
+    }
+    #spinner {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="tool-container">
+    <div class="tool-header">
+      <h1 class="h3 mb-1">🖼️ Free Image Upscaler</h1>
+      <p class="mb-0">Upload any image and upscale it 2×–10× right in your browser.</p>
+    </div>
+    <div class="tool-body row gx-5 gy-4">
+      <!-- FORM -->
+      <div class="col-md-6">
+        <div class="mb-4">
+          <label for="imageUpload" class="form-label">Choose an image</label>
+          <input
+            class="form-control"
+            type="file"
+            id="imageUpload"
+            accept="image/*"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="scaleSelect" class="form-label">Upscale Factor</label>
+          <select class="form-select" id="scaleSelect" disabled>
+            <!-- JS will fill -->
+          </select>
+        </div>
+        <div class="mb-3 info-text">
+          <p id="originalSize">Original size: – × –</p>
+          <p id="newSize">New size: – × –</p>
+        </div>
+        <div class="d-flex align-items-center mb-3">
+          <div id="spinner" class="spinner-border text-primary me-2 d-none" role="status">
+            <span class="visually-hidden">Processing…</span>
+          </div>
+          <span id="processingText" class="d-none">Processing…</span>
+        </div>
+        <a
+          id="downloadBtn"
+          class="btn btn-success w-100 disabled"
+        >
+          Download Upscaled Image
+        </a>
+      </div>
+      <!-- PREVIEW -->
+      <div class="col-md-6 text-center">
+        <canvas id="previewCanvas" class="preview-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden canvas to hold original -->
+  <canvas id="inputCanvas" style="display:none"></canvas>
+
+  <!-- Dependencies -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+  ></script>
+  <!-- Pica for fast high-quality resizing -->
+  <script src="https://unpkg.com/pica@8.0.0/dist/pica.min.js"></script>
+
+  <script>
+    $(function() {
+      const picaResizer = pica({ features: ['js', 'wasm', 'cib'], concurrency: 4 });
+      const $upload = $('#imageUpload');
+      const $scale = $('#scaleSelect');
+      const $origText = $('#originalSize');
+      const $newText = $('#newSize');
+      const $canvas = $('#previewCanvas')[0];
+      const $inputCanvas = $('#inputCanvas')[0];
+      const $spinner = $('#spinner');
+      const $procText = $('#processingText');
+      const $download = $('#downloadBtn');
+
+      let img = new Image();
+
+      // Fill scale options
+      for (let i = 2; i <= 10; i++) {
+        $scale.append(`<option value="${i}">${i}×</option>`);
+      }
+
+      function setProcessing(on) {
+        if (on) {
+          $spinner.removeClass('d-none');
+          $procText.removeClass('d-none');
+          $download.addClass('disabled');
+        } else {
+          $spinner.addClass('d-none');
+          $procText.addClass('d-none');
+          $download.removeClass('disabled');
+        }
+      }
+
+      async function updatePreview() {
+        setProcessing(true);
+        const factor = +$scale.val();
+        const ow = img.width, oh = img.height;
+        const nw = ow * factor, nh = oh * factor;
+
+        // draw original into hidden canvas
+        $inputCanvas.width = ow;
+        $inputCanvas.height = oh;
+        const inCtx = $inputCanvas.getContext('2d');
+        inCtx.clearRect(0, 0, ow, oh);
+        inCtx.drawImage(img, 0, 0);
+
+        // prepare output canvas
+        $canvas.width = nw;
+        $canvas.height = nh;
+
+        // use Pica to resize
+        await picaResizer.resize($inputCanvas, $canvas, {
+          quality: 3,
+          alpha: true,
+        });
+
+        // update texts
+        $origText.text(`Original size: ${ow}×${oh}`);
+        $newText.text(`New size: ${nw}×${nh}`);
+
+        // create blob & set download link
+        const blob = await picaResizer.toBlob($canvas, 'image/png', 0.90);
+        const url = URL.createObjectURL(blob);
+        $download
+          .attr('href', url)
+          .attr('download', `upscaled_${factor}x.png`);
+
+        setProcessing(false);
+      }
+
+      // on image load
+      $upload.on('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = ev => {
+          img = new Image();
+          img.onload = () => {
+            $scale.prop('disabled', false);
+            $scale.val('2');
+            updatePreview();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // on factor change
+      $scale.on('input change', updatePreview);
+    });
+  </script>
+</body>
+</html>

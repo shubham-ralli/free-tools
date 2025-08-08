@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Website Page Size Checker — Frontend Only</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Free libraries -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f7f7fb; --card:#fff; --muted:#6c757d;
+    }
+    body{ background:var(--bg); padding:32px;}
+    .tool{ max-width:1000px; margin:auto; background:var(--card); border-radius:18px; box-shadow:0 10px 26px rgba(0,0,0,.06);}
+    .tool header{ padding:26px 26px 0;}
+    .tool .content{ padding:0 26px 26px;}
+    .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+    .scroll{ max-height:360px; overflow:auto;}
+    .loading{ display:none;}
+    .mini{ font-size:.9rem; color:var(--muted);}
+    .kbd{ background:#f1f3f5; border-radius:6px; padding:2px 6px; }
+  </style>
+</head>
+<body>
+<div class="tool">
+  <header class="border-bottom">
+    <h1 class="h4 mb-2">🌐 Website Page Size Checker</h1>
+    <p class="mini mb-3">Estimates total weight of a page (HTML + assets) using free CORS proxies. Accuracy can vary if a site blocks proxies or omits headers.</p>
+  </header>
+
+  <div class="content">
+    <form id="form" class="row g-2 align-items-center">
+      <div class="col-lg-9">
+        <input id="url" class="form-control form-control-lg" type="url" placeholder="https://example.com" required>
+      </div>
+      <div class="col-lg-3 d-grid">
+        <button class="btn btn-primary btn-lg" type="submit">Check Size</button>
+      </div>
+    </form>
+
+    <div class="loading alert alert-info mt-3 mono">Scanning… large pages may take ~10–30s.</div>
+    <div id="err" class="alert alert-danger mt-3 d-none"></div>
+
+    <div id="res" class="mt-4 d-none">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="p-3 border rounded-3 bg-light">
+            <div class="mini">Total Page Weight</div>
+            <div id="total" class="h3 mono mb-0">–</div>
+            <div id="count" class="mini">– assets</div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="p-3 border rounded-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Breakdown by Type</strong>
+              <button id="csv" class="btn btn-sm btn-outline-secondary">Export CSV</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0" id="bd">
+                <thead><tr><th>Type</th><th class="text-end">Size</th><th class="text-end">Files</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="mini mt-2">Tip: lazy‑load offscreen images, defer non‑critical JS, compress/resize images, use modern formats (WebP/AVIF), and split vendor bundles.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 border rounded-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong>Heaviest Files (Top 20)</strong>
+          <span id="origin" class="badge bg-secondary rounded-pill">Origin: –</span>
+        </div>
+        <div class="table-responsive scroll mt-2">
+          <table class="table table-sm table-hover align-middle mb-0" id="top">
+            <thead><tr><th style="min-width:380px">URL</th><th>Type</th><th class="text-end">Size</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="mini mt-2">Hold <span class="kbd">⌘</span>/<span class="kbd">Ctrl</span> to open multiple heavy assets in new tabs for manual checks.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- tiny custom helpers "lib" (no install) ---------- */
+const Utils = {
+  human(bytes){
+    if (!bytes || isNaN(bytes)) return "0 B";
+    const u = ["B","KB","MB","GB","TB"]; let i=0;
+    while(bytes>=1024 && i<u.length-1){ bytes/=1024; i++; }
+    return (i?bytes.toFixed(2):bytes.toFixed(0))+" "+u[i];
+  },
+  toCSV(rows){
+    return rows.map(r=>r.map(v=>{
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(",")).join("\n");
+  },
+  resolve(base, rel){
+    try { return new URL(rel, base).href; } catch(e){ return null; }
+  },
+  typeFrom(urlOrMime){
+    const s = (urlOrMime||"").toLowerCase();
+    if (/\.(css)([?#]|$)/.test(s) || s.includes("text/css")) return "css";
+    if (/\.(js)([?#]|$)/.test(s) || s.includes("javascript")) return "js";
+    if (/\.(jpe?g|png|gif|webp|avif|svg)([?#]|$)/.test(s) || s.startsWith("image/")) return "image";
+    if (/\.(woff2?|ttf|otf|eot)([?#]|$)/.test(s) || s.startsWith("font/")) return "font";
+    if (/\.(mp4|webm|ogg|mov|m4v)([?#]|$)/.test(s) || s.startsWith("video/")) return "video";
+    if (s.includes("text/html")) return "html";
+    return "other";
+  },
+  /* basic HTML parsing to DOM safely */
+  toDoc(html){
+    const doc = document.implementation.createHTMLDocument("");
+    doc.documentElement.innerHTML = html;
+    return doc;
+  }
+};
+
+/* ---------- free CORS proxies (frontend-only) ---------- */
+/* We try each until one works for that URL. */
+const Proxies = [
+  // Returns raw bytes with permissive CORS
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  // Another raw passthrough
+  u => `https://cors.isomorphic-git.org/${u}`,
+  // Thingproxy (can be flaky)
+  u => `https://thingproxy.freeboard.io/fetch/${u}`
+];
+
+/* Fetch text (HTML) via proxies */
+async function fetchTextViaProxy(url){
+  let lastErr;
+  for (const wrap of Proxies){
+    const prox = wrap(url);
+    try{
+      const r = await fetch(prox, { method:"GET" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const t = await r.text();
+      if (t && t.length) return { text:t, proxy:wrap };
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("All proxies failed for HTML");
+}
+
+/* Fetch bytes (asset) via proxies -> returns {size, mime} */
+async function fetchBytesViaProxy(url){
+  let lastErr;
+  for (const wrap of Proxies){
+    const prox = wrap(url);
+    try{
+      const r = await fetch(prox, { method:"GET" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const mime = r.headers.get("content-type") || "";
+      const b = await r.blob();       // size of decoded body (approx user-perceived)
+      return { size: b.size, mime, proxyUsed: wrap };
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("All proxies failed for asset");
+}
+
+/* Extract common asset URLs from HTML (no CSS url() pass here) */
+function extractAssets(html, baseUrl){
+  const doc = Utils.toDoc(html);
+  const out = new Set();
+
+  const take = (nodes, attr) => nodes.forEach(n=>{
+    const v = n.getAttribute(attr); const u = Utils.resolve(baseUrl, v);
+    if (u && /^https?:/i.test(u)) out.add(u);
+  });
+
+  take([...doc.querySelectorAll('link[rel="stylesheet"][href]')], 'href');
+  take([...doc.querySelectorAll('script[src]')], 'src');
+  take([...doc.querySelectorAll('img[src]')], 'src');
+  take([...doc.querySelectorAll('source[src]')], 'src');
+  take([...doc.querySelectorAll('video[src]')], 'src');
+  // posters
+  [...doc.querySelectorAll('video[poster]')].forEach(n=>{
+    const u = Utils.resolve(baseUrl, n.getAttribute('poster'));
+    if (u) out.add(u);
+  });
+  // srcset
+  [...doc.querySelectorAll('img[srcset]')].forEach(n=>{
+    const parts = n.getAttribute('srcset').split(',').map(s=>s.trim().split(/\s+/)[0]).filter(Boolean);
+    parts.forEach(p=>{
+      const u = Utils.resolve(baseUrl, p);
+      if (u) out.add(u);
+    });
+  });
+  return [...out];
+}
+
+/* Concurrency limiter (custom tiny lib) */
+async function mapLimit(items, limit, worker){
+  const ret = []; let i=0, active=0, nextResolve;
+  return await new Promise((resolve)=>{
+    nextResolve = resolve;
+    const kick = ()=>{
+      while(active<limit && i<items.length){
+        const idx = i++, it = items[idx]; active++;
+        Promise.resolve(worker(it, idx)).then(v=>ret[idx]=v).catch(e=>ret[idx]=e).finally(()=>{
+          active--; if (ret.length===items.length && !ret.includes(undefined)) nextResolve(ret);
+          else kick();
+        });
+      }
+      if (items.length===0) nextResolve([]);
+    };
+    kick();
+  });
+}
+
+/* ---------- UI & logic ---------- */
+const $form = $("#form"), $url = $("#url"), $err = $("#err"),
+      $load = $(".loading"), $res = $("#res"),
+      $total = $("#total"), $count = $("#count"),
+      $bdBody = $("#bd tbody"), $topBody = $("#top tbody"), $origin = $("#origin");
+
+$form.on("submit", async (e)=>{
+  e.preventDefault();
+  const raw = $url.val().trim();
+  if(!raw) return;
+
+  // normalize
+  let pageUrl = raw;
+  if(!/^https?:\/\//i.test(pageUrl)) pageUrl = "https://" + pageUrl;
+
+  $err.addClass("d-none").text("");
+  $res.addClass("d-none");
+  $load.show();
+
+  try{
+    // 1) Fetch HTML
+    const { text:html, proxy:htmlProxy } = await fetchTextViaProxy(pageUrl);
+    const htmlBytes = new TextEncoder().encode(html).length; // UTF-8 size
+    const assets = extractAssets(html, pageUrl);
+
+    // 2) Measure assets with concurrency limit
+    const limit = 6;
+    const results = [{
+      url: pageUrl, type: "html", bytes: htmlBytes, ok:true
+    }];
+
+    const measured = await mapLimit(assets, limit, async (u)=>{
+      try{
+        const { size, mime } = await fetchBytesViaProxy(u);
+        return { url:u, type: Utils.typeFrom(mime || u), bytes:size, ok:true };
+      }catch(err){
+        return { url:u, type:"other", bytes:0, ok:false, error:String(err) };
+      }
+    });
+
+    measured.forEach(m=>results.push(m));
+
+    // 3) Totals & breakdown
+    const totals = { total:0, by:{html:{bytes:0,cnt:0}, css:{bytes:0,cnt:0}, js:{bytes:0,cnt:0}, image:{bytes:0,cnt:0}, font:{bytes:0,cnt:0}, video:{bytes:0,cnt:0}, other:{bytes:0,cnt:0} } };
+    results.forEach(r=>{
+      totals.total += r.bytes;
+      const t = totals.by[r.type] ? r.type : "other";
+      totals.by[t].bytes += r.bytes;
+      totals.by[t].cnt   += 1;
+    });
+
+    // 4) Render
+    $total.text(Utils.human(totals.total));
+    $count.text(`${results.length-1} assets`);
+    const origin = new URL(pageUrl).origin;
+    $origin.text(`Origin: ${origin}`);
+
+    const order = ["html","css","js","image","font","video","other"];
+    $bdBody.empty();
+    order.forEach(t=>{
+      const row = totals.by[t];
+      $bdBody.append(
+        `<tr><td class="text-capitalize">${t}</td><td class="text-end mono">${Utils.human(row.bytes)}</td><td class="text-end">${row.cnt}</td></tr>`
+      );
+    });
+
+    const heavy = results.filter(r=>r.type!=="html").sort((a,b)=>b.bytes-a.bytes).slice(0,20);
+    $topBody.empty();
+    heavy.forEach(h=>{
+      $topBody.append(
+        `<tr>
+          <td class="mono"><a href="${h.url}" target="_blank" rel="noopener">${h.url}</a></td>
+          <td class="text-capitalize">${h.type}</td>
+          <td class="text-end mono">${Utils.human(h.bytes)}</td>
+        </tr>`
+      );
+    });
+
+    // 5) CSV export
+    $("#csv").off("click").on("click", function(){
+      const rows = [["URL","Type","Bytes","Human Size","OK","Error"]];
+      results.slice(0).forEach(a=>{
+        rows.push([a.url, a.type, a.bytes, Utils.human(a.bytes), a.ok ? "yes":"no", a.error||""]);
+      });
+      const blob = new Blob([Utils.toCSV(rows)], {type:"text/csv;charset=utf-8"});
+      const o = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href=o; a.download="page-size-assets.csv"; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(o);
+    });
+
+    $res.removeClass("d-none");
+  }catch(err){
+    $err.removeClass("d-none").text("Failed to scan: " + String(err));
+  }finally{
+    $load.hide();
+  }
+});
+</script>
+</body>
+</html>

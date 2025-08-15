@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CSV Data Generator</title>
+<title>CSV / JSON / SQL / Excel Data Generator</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
-
 <style>
     .field-row { cursor: move; }
 </style>
@@ -13,12 +12,46 @@
 <body class="p-4">
 
 <div class="container">
-    <h2 class="mb-3">CSV Data Generator</h2>
+    <h2 class="mb-3">Data Generator</h2>
 
-    <div class="mb-3">
+
+    <div class="row mb-3">
+
+    <div class="col">
         <label>Number of Rows</label>
         <input type="number" id="rowCount" class="form-control" value="10" min="1">
     </div>
+
+<div class="col">
+        <label>Download Format</label>
+        <select id="downloadFormat" class="form-select">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+            <option value="sql">SQL</option>
+            <option value="excel">Excel</option>
+        </select>
+    </div>
+
+    <div class="col">
+<div id="jsonOptions" class="mb-3" style="display:none;">
+        <input type="checkbox" id="jsonArray" checked> <label for="jsonArray">Array format</label>
+    </div>
+
+    <div id="sqlOptions" class="mb-3" style="display:none;">
+        <label>Table Name</label>
+        <input type="text" id="sqlTableName" class="form-control mb-2" value="my_table">
+        <input type="checkbox" id="includeCreateTable" checked> <label for="includeCreateTable">Include CREATE TABLE</label>
+    </div>
+    </div>
+
+    <div class="col">
+          <button id="generateBtn" class="btn btn-success mb-3">Generate Data</button>
+
+    </div>
+
+    </div>
+
+    
 
     <table class="table table-bordered" id="fieldsTable">
         <thead>
@@ -32,45 +65,37 @@
             </tr>
         </thead>
         <tbody id="fieldsBody">
-            <!-- Default fields -->
             <tr class="field-row">
                 <td><input type="text" class="form-control" value="id" readonly></td>
-                <td>
-                    <select class="form-select typeSelect">
-                        <option value="id" selected>ID</option>
-                    </select>
-                </td>
+                <td><select class="form-select typeSelect"></select></td>
                 <td></td><td></td>
-                <td><input type="text" class="form-control" value=""></td>
+                <td><input type="text" class="form-control"></td>
                 <td></td>
             </tr>
             <tr class="field-row">
                 <td><input type="text" class="form-control" value="name"></td>
-                <td>
-                    <select class="form-select typeSelect">
-                        <option value="fullName" selected>Full Name</option>
-                    </select>
-                </td>
+                <td><select class="form-select typeSelect"></select></td>
                 <td></td><td></td>
-                <td><input type="text" class="form-control" value=""></td>
+                <td><input type="text" class="form-control"></td>
                 <td><button class="btn btn-danger btn-sm removeField">X</button></td>
             </tr>
             <tr class="field-row">
                 <td><input type="text" class="form-control" value="gender"></td>
-                <td>
-                    <select class="form-select typeSelect">
-                        <option value="gender" selected>Gender</option>
-                    </select>
-                </td>
+                <td><select class="form-select typeSelect"></select></td>
                 <td></td><td></td>
-                <td><input type="text" class="form-control" value=""></td>
+                <td><input type="text" class="form-control"></td>
                 <td><button class="btn btn-danger btn-sm removeField">X</button></td>
             </tr>
         </tbody>
     </table>
 
-    <button id="addField" class="btn btn-primary mb-3">Add Field</button>
-    <button id="generateBtn" class="btn btn-success mb-3">Generate Data</button>
+    <button id="addField" class="btn btn-primary">Add Field</button>
+      <button id="downloadBtn" class="btn btn-info " style="display:none;">Download</button>
+  
+
+    
+
+    
 
     <h4>Preview</h4>
     <table id="previewTable" class="display" style="width:100%">
@@ -78,24 +103,23 @@
         <tbody></tbody>
     </table>
 
-    <button id="downloadCSV" class="btn btn-info mt-3" style="display:none;">Download CSV</button>
+    
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script> -->
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <script>
 const fieldTypes = [
     "id","firstName","lastName","fullName","maidenName","email","phone","age",
     "birthDate","gender","ipAddress","boolean","address","city","state","stateCode",
     "postalCode","country","companyName","companyAddress","companyPhone","number"
 ];
-
 let userData = [];
 
-// Fetch from DummyJSON API
+// Fetch user data
 fetch("https://dummyjson.com/users?limit=100")
     .then(res => res.json())
     .then(data => { userData = data.users; });
@@ -111,7 +135,13 @@ function populateTypeSelect(select, selected) {
     });
 }
 
-// Add new field row
+document.querySelectorAll(".typeSelect").forEach((sel, idx) => {
+    if (idx === 0) populateTypeSelect(sel, "id");
+    else if (idx === 1) populateTypeSelect(sel, "fullName");
+    else if (idx === 2) populateTypeSelect(sel, "gender");
+});
+
+// Add field row
 $("#addField").on("click", function(){
     let tr = document.createElement("tr");
     tr.className = "field-row";
@@ -145,7 +175,17 @@ $(document).on("change", ".typeSelect", function(){
 // Drag-and-drop
 new Sortable(document.getElementById("fieldsBody"), { animation: 150 });
 
-// Generate Data
+// Format change UI
+$("#downloadFormat").on("change", function(){
+    $("#jsonOptions, #sqlOptions").hide();
+    if (this.value === "json") $("#jsonOptions").show();
+    if (this.value === "sql") $("#sqlOptions").show();
+});
+
+// Generate data
+let generatedData = [];
+let generatedHeaders = [];
+
 $("#generateBtn").on("click", function(){
     let rows = parseInt($("#rowCount").val());
     let fields = [];
@@ -161,30 +201,29 @@ $("#generateBtn").on("click", function(){
     let output = [];
     for (let i=0; i<rows; i++) {
         let row = {};
-        fields.forEach(f => {
-            row[f.name] = generateFieldData(f, i);
-        });
+        fields.forEach(f => row[f.name] = generateFieldData(f, i));
         output.push(row);
     }
+    generatedData = output;
+    generatedHeaders = fields.map(f=>f.name);
 
     if ($.fn.DataTable.isDataTable('#previewTable')) {
         $('#previewTable').DataTable().destroy();
     }
-    $("#previewTable thead").html("<tr>"+fields.map(f=>`<th>${f.name}</th>`).join("")+"</tr>");
-    $("#previewTable tbody").html(output.map(r => "<tr>"+fields.map(f=>`<td>${r[f.name]}</td>`).join("")+"</tr>").join(""));
-    $('#previewTable').DataTable({});
-    $("#downloadCSV").show().off().on("click", function(){ downloadCSV(output, fields.map(f=>f.name)); });
+    $("#previewTable thead").html("<tr>"+generatedHeaders.map(h=>`<th>${h}</th>`).join("")+"</tr>");
+    $("#previewTable tbody").html(output.map(r => "<tr>"+generatedHeaders.map(h=>`<td>${r[h]}</td>`).join("")+"</tr>").join(""));
+    $('#previewTable').DataTable({paging:true, searching:true, info:true});
+    $("#downloadBtn").show();
 });
 
 function generateFieldData(f, index) {
     if (f.def) return f.def;
-
     let user = userData[index % userData.length] || {};
     switch(f.type) {
         case "id": return index+1;
         case "firstName": return user.firstName || "";
         case "lastName": return user.lastName || "";
-        case "fullName": return (user.firstName || "") + " " + (user.lastName || "");
+        case "fullName": return `${user.firstName || ""} ${user.lastName || ""}`;
         case "maidenName": return user.maidenName || "";
         case "email": return user.email || "";
         case "phone": return user.phone || "";
@@ -204,33 +243,54 @@ function generateFieldData(f, index) {
         case "companyPhone": return user.company?.phone || "";
         case "number":
             let min = parseInt(f.min) || 0;
-            let max = parseInt(f.max) || 100;
+            let max = parseInt(f.max) || 1000;
             return rand(min, max);
         default: return "";
     }
 }
+function rand(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
 
-function rand(min, max) {
-    return Math.floor(Math.random()*(max-min+1))+min;
-}
+// Download button
+$("#downloadBtn").on("click", function(){
+    let format = $("#downloadFormat").val();
+    if (format === "csv") {
+        let csv = generatedHeaders.join(",") + "\n";
+        generatedData.forEach(r => { csv += generatedHeaders.map(h => `"${r[h]}"`).join(",") + "\n"; });
+        downloadFile(csv, "data.csv", "text/csv");
+    } else if (format === "json") {
+        if ($("#jsonArray").is(":checked")) {
+            downloadFile(JSON.stringify(generatedData, null, 2), "data.json", "application/json");
+        } else {
+            let text = generatedData.map(o => JSON.stringify(o)).join("\r\n");
+            downloadFile(text, "data.json", "application/json");
+        }
+    } else if (format === "sql") {
+        let table = $("#sqlTableName").val() || "my_table";
+        let sql = "";
+        if ($("#includeCreateTable").is(":checked")) {
+            sql += `CREATE TABLE ${table} (${generatedHeaders.map(h => `\`${h}\` TEXT`).join(", ")});\n`;
+        }
+        generatedData.forEach(r => {
+            sql += `INSERT INTO ${table} (${generatedHeaders.join(", ")}) VALUES (${generatedHeaders.map(h => `'${r[h]}'`).join(", ")});\n`;
+        });
+        downloadFile(sql, "data.sql", "application/sql");
+    } else if (format === "excel") {
+        let ws = XLSX.utils.json_to_sheet(generatedData);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, "data.xlsx");
+    }
+});
 
-function downloadCSV(data, headers) {
-    let csv = headers.join(",") + "\n";
-    data.forEach(row => {
-        csv += headers.map(h => `"${row[h]}"`).join(",") + "\n";
-    });
-    let blob = new Blob([csv], { type: 'text/csv' });
+function downloadFile(content, fileName, type) {
+    let blob = new Blob([content], { type });
     let a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "data.csv";
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
 }
-
-// Populate existing default selects
-document.querySelectorAll(".typeSelect").forEach(sel => populateTypeSelect(sel, sel.value));
 </script>
-
 </body>
 </html>

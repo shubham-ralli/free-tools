@@ -2,200 +2,222 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CSV / JSON / SQL / Excel Data Generator</title>
+<title>Custom Data Generator</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <style>
-    .field-row { cursor: move; }
+    body { background-color: #f7f9fc; }
+    .card { border-radius: 12px; }
+    .field-row {
+        cursor: grab;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .field-row input, .field-row select {
+        max-width: 150px;
+    }
+    #fieldsBody { margin-top: 10px; }
+    .btn-icon { display: inline-flex; align-items: center; gap: 6px; }
+    .float_card{
+            position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    background: #FFF;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+    }
 </style>
 </head>
 <body class="p-4">
 
 <div class="container">
-    <h2 class="mb-3">Data Generator</h2>
+    <h2 class="mb-4"><i class="fa-solid fa-database"></i> Data Generator</h2>
 
-
-    <div class="row mb-3">
-
-    <div class="col">
-        <label>Number of Rows</label>
-        <input type="number" id="rowCount" class="form-control" value="10" min="1">
-    </div>
-
-<div class="col">
-        <label>Download Format</label>
-        <select id="downloadFormat" class="form-select">
-            <option value="csv">CSV</option>
-            <option value="json">JSON</option>
-            <option value="sql">SQL</option>
-            <option value="excel">Excel</option>
-        </select>
-    </div>
-
-    <div class="col">
-<div id="jsonOptions" class="mb-3" style="display:none;">
-        <input type="checkbox" id="jsonArray" checked> <label for="jsonArray">Array format</label>
-    </div>
-
-    <div id="sqlOptions" class="mb-3" style="display:none;">
-        <label>Table Name</label>
-        <input type="text" id="sqlTableName" class="form-control mb-2" value="my_table">
-        <input type="checkbox" id="includeCreateTable" checked> <label for="includeCreateTable">Include CREATE TABLE</label>
-    </div>
-    </div>
-
-    <div class="col">
-          <button id="generateBtn" class="btn btn-success mb-3">Generate Data</button>
-
-    </div>
-
-    </div>
 
     
 
-    <table class="table table-bordered" id="fieldsTable">
-        <thead>
-            <tr>
-                <th>Field Name</th>
-                <th>Type</th>
-                <th>Min</th>
-                <th>Max</th>
-                <th>Default Value</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="fieldsBody">
-            <tr class="field-row">
-                <td><input type="text" class="form-control" value="id" readonly></td>
-                <td><select class="form-select typeSelect"></select></td>
-                <td></td><td></td>
-                <td><input type="text" class="form-control"></td>
-                <td></td>
-            </tr>
-            <tr class="field-row">
-                <td><input type="text" class="form-control" value="name"></td>
-                <td><select class="form-select typeSelect"></select></td>
-                <td></td><td></td>
-                <td><input type="text" class="form-control"></td>
-                <td><button class="btn btn-danger btn-sm removeField">X</button></td>
-            </tr>
-            <tr class="field-row">
-                <td><input type="text" class="form-control" value="gender"></td>
-                <td><select class="form-select typeSelect"></select></td>
-                <td></td><td></td>
-                <td><input type="text" class="form-control"></td>
-                <td><button class="btn btn-danger btn-sm removeField">X</button></td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- Fields -->
+    <div class="card p-3 mb-4 shadow-sm">
+        <h5 class="mb-3"><i class="fa-solid fa-list"></i> Fields</h5>
+        <div id="fieldsBody"></div>
+        <button id="addField" class="btn btn-primary btn-icon mt-2">
+            <i class="fa-solid fa-plus"></i> Add another field
+        </button>
+    </div>
 
-    <button id="addField" class="btn btn-primary">Add Field</button>
-      <button id="downloadBtn" class="btn btn-info " style="display:none;">Download</button>
-  
 
-    
 
-    
 
-    <h4>Preview</h4>
-    <table id="previewTable" class="display" style="width:100%">
-        <thead></thead>
-        <tbody></tbody>
-    </table>
+    <div class="float_card p-3">
+        <div class="container">
+        <div class="row g-3 align-items-end">
 
-    
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                 <button id="generateBtn" class="btn btn-success btn-icon">
+            <i class="fa-solid fa-play"></i> Generate Data
+        </button>
+        <button id="downloadBtn" class="btn btn-info btn-icon" style="display:none;">
+            <i class="fa-solid fa-download"></i> Download
+        </button>
+    </div>
+    </div>
+            <div class="col-md-2">
+                <label class="form-label">Number of Rows</label>
+                <input type="number" id="rowCount" class="form-control" value="10" min="1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Download Format</label>
+                <select id="downloadFormat" class="form-select">
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                    <option value="sql">SQL</option>
+                    <option value="excel">Excel</option>
+                </select>
+            </div>
+            <div class="col-md-3" id="jsonOptions" style="display:none;">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="jsonArray" checked>
+                    <label class="form-check-label" for="jsonArray">Array format</label>
+                </div>
+            </div>
+            <div class="col-md-4" id="sqlOptions" style="display:none;">
+                <label class="form-label">Table Name</label>
+                <input type="text" id="sqlTableName" class="form-control mb-2" value="my_table">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="includeCreateTable" checked>
+                    <label class="form-check-label" for="includeCreateTable">Include CREATE TABLE</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Actions -->
+<!--     <div class="d-flex gap-2 mb-4">
+        <button id="generateBtn" class="btn btn-success btn-icon">
+            <i class="fa-solid fa-play"></i> Generate Data
+        </button>
+        <button id="downloadBtn" class="btn btn-info btn-icon" style="display:none;">
+            <i class="fa-solid fa-download"></i> Download
+        </button>
+    </div> -->
+
+    <!-- Preview -->
+    <div class="card p-3 shadow-sm">
+        <h5 class="mb-3"><i class="fa-solid fa-table"></i> Preview</h5>
+        <table id="previewTable" class="display table table-striped table-hover" style="width:100%">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
 <script>
 const fieldTypes = [
     "id","firstName","lastName","fullName","maidenName","email","phone","age",
-    "birthDate","gender","ipAddress","boolean","address","city","state","stateCode",
+    "birthDate","gender","date","ipAddress","boolean","address","city","state","stateCode",
     "postalCode","country","companyName","companyAddress","companyPhone","number"
 ];
 let userData = [];
 
-// Fetch user data
+// Fetch dummy data
 fetch("https://dummyjson.com/users?limit=100")
     .then(res => res.json())
     .then(data => { userData = data.users; });
 
-// Populate dropdowns
+// Create default rows
+function createFieldRow(name, type, readOnly=false) {
+    let row = document.createElement("div");
+    row.className = "field-row";
+    row.innerHTML = `
+        <input type="text" class="form-control" value="${name}" ${readOnly ? "readonly" : ""}>
+        <select class="form-select typeSelect"></select>
+        <input type="number" class="form-control minVal" placeholder="Min" style="display:none;">
+        <input type="number" class="form-control maxVal" placeholder="Max" style="display:none;">
+        <input type="date" class="form-control minDate" style="display:none;">
+        <input type="date" class="form-control maxDate" style="display:none;">
+        <input type="text" class="form-control defaultVal" placeholder="Default Value">
+        ${readOnly ? "" : `<button class="btn btn-danger btn-sm removeField"><i class="fa-solid fa-trash"></i></button>`}
+    `;
+    populateTypeSelect(row.querySelector(".typeSelect"), type);
+    return row;
+}
+
 function populateTypeSelect(select, selected) {
-    fieldTypes.forEach(type => {
-        const opt = document.createElement("option");
-        opt.value = type;
-        opt.textContent = type;
-        if (type === selected) opt.selected = true;
+    fieldTypes.forEach(ft => {
+        let opt = document.createElement("option");
+        opt.value = ft;
+        opt.textContent = ft;
+        if (ft === selected) opt.selected = true;
         select.appendChild(opt);
     });
 }
 
-document.querySelectorAll(".typeSelect").forEach((sel, idx) => {
-    if (idx === 0) populateTypeSelect(sel, "id");
-    else if (idx === 1) populateTypeSelect(sel, "fullName");
-    else if (idx === 2) populateTypeSelect(sel, "gender");
-});
+$("#fieldsBody").append(createFieldRow("id", "id", true));
+$("#fieldsBody").append(createFieldRow("name", "fullName"));
+$("#fieldsBody").append(createFieldRow("gender", "gender"));
 
-// Add field row
-$("#addField").on("click", function(){
-    let tr = document.createElement("tr");
-    tr.className = "field-row";
-    tr.innerHTML = `
-        <td><input type="text" class="form-control" value=""></td>
-        <td><select class="form-select typeSelect"></select></td>
-        <td><input type="number" class="form-control minVal" style="display:none;"></td>
-        <td><input type="number" class="form-control maxVal" style="display:none;"></td>
-        <td><input type="text" class="form-control"></td>
-        <td><button class="btn btn-danger btn-sm removeField">X</button></td>
-    `;
-    document.querySelector("#fieldsBody").appendChild(tr);
-    populateTypeSelect(tr.querySelector(".typeSelect"), "");
+// Add field
+$("#addField").on("click", () => {
+    $("#fieldsBody").append(createFieldRow("", ""));
 });
 
 // Remove field
 $(document).on("click", ".removeField", function(){
-    $(this).closest("tr").remove();
+    $(this).parent().remove();
 });
 
-// Show Min/Max for number type
+// Show Min/Max for number and date type
 $(document).on("change", ".typeSelect", function(){
-    let row = $(this).closest("tr");
+    let row = $(this).parent();
+    row.find(".minVal, .maxVal, .minDate, .maxDate").hide();
     if ($(this).val() === "number") {
         row.find(".minVal, .maxVal").show();
-    } else {
-        row.find(".minVal, .maxVal").hide();
+    } else if ($(this).val() === "date") {
+        row.find(".minDate, .maxDate").show();
     }
 });
 
-// Drag-and-drop
+// Drag & Drop
 new Sortable(document.getElementById("fieldsBody"), { animation: 150 });
 
-// Format change UI
+// Format-specific UI
 $("#downloadFormat").on("change", function(){
     $("#jsonOptions, #sqlOptions").hide();
     if (this.value === "json") $("#jsonOptions").show();
     if (this.value === "sql") $("#sqlOptions").show();
 });
 
-// Generate data
 let generatedData = [];
 let generatedHeaders = [];
 
 $("#generateBtn").on("click", function(){
     let rows = parseInt($("#rowCount").val());
     let fields = [];
-    $("#fieldsBody tr").each(function(){
-        let name = $(this).find("td:eq(0) input").val();
-        let type = $(this).find(".typeSelect").val();
-        let min = $(this).find(".minVal").val();
-        let max = $(this).find(".maxVal").val();
-        let def = $(this).find("td:eq(4) input").val();
-        fields.push({name, type, min, max, def});
+    $("#fieldsBody .field-row").each(function(){
+        let inputs = $(this).find("input, select");
+        let name = inputs.eq(0).val();
+        let type = inputs.eq(1).val();
+        let min = inputs.eq(2).val();
+        let max = inputs.eq(3).val();
+        let minDate = inputs.eq(4).val();
+        let maxDate = inputs.eq(5).val();
+        let def = inputs.eq(6).val();
+        fields.push({name, type, min, max, minDate, maxDate, def});
     });
 
     let output = [];
@@ -245,12 +267,19 @@ function generateFieldData(f, index) {
             let min = parseInt(f.min) || 0;
             let max = parseInt(f.max) || 1000;
             return rand(min, max);
+        case "date":
+            let minDate = f.minDate ? new Date(f.minDate) : new Date('2000-01-01');
+            let maxDate = f.maxDate ? new Date(f.maxDate) : new Date();
+            return randomDate(minDate, maxDate).toISOString().split('T')[0];
         default: return "";
     }
 }
 function rand(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
+function randomDate(start, end) {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
 
-// Download button
+// Download
 $("#downloadBtn").on("click", function(){
     let format = $("#downloadFormat").val();
     if (format === "csv") {

@@ -6,10 +6,20 @@
   <title>Universal Data Format Converter</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
   <style>
-    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 0; min-height: 100vh; }
-    .main-card { background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+    body { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      padding: 20px 0; 
+      min-height: 100vh; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .main-card { 
+      background: white; 
+      border-radius: 15px; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+    }
     pre.code-box {
       background: #1e1e1e;
       color: #00ff9d;
@@ -20,6 +30,7 @@
       font-size: 13px;
       white-space: pre-wrap;
       word-break: break-word;
+      font-family: 'Courier New', monospace;
     }
     .loader {
       display: none;
@@ -38,23 +49,25 @@
       border: 1px solid #ddd;
       border-radius: 8px;
     }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; }
-    th { background-color: #667eea; color: white; position: sticky; top: 0; z-index: 10; }
-    .format-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-    .format-btn { 
-      padding: 8px 16px; 
-      border: 2px solid #667eea; 
-      background: white; 
-      color: #667eea; 
-      border-radius: 20px; 
-      cursor: pointer; 
-      transition: all 0.3s;
-      font-size: 13px;
-      font-weight: 600;
+    th, td { 
+      border: 1px solid #ccc; 
+      padding: 8px; 
+      text-align: left; 
+      font-size: 14px; 
     }
-    .format-btn:hover { background: #667eea; color: white; }
-    .format-btn.active { background: #667eea; color: white; }
-    .section-title { color: #667eea; font-weight: bold; margin: 20px 0 10px 0; }
+    th { 
+      background-color: #667eea; 
+      color: white; 
+      position: sticky; 
+      top: 0; 
+      z-index: 10; 
+    }
+    .section-title { 
+      color: #667eea; 
+      font-weight: bold; 
+      margin: 20px 0 15px 0; 
+      font-size: 18px;
+    }
     .upload-area {
       border: 3px dashed #667eea;
       border-radius: 10px;
@@ -64,47 +77,207 @@
       transition: all 0.3s;
       background: #f8f9ff;
     }
-    .upload-area:hover { background: #e8e9ff; border-color: #764ba2; }
-    .upload-area.drag-over { background: #d0d1ff; border-color: #764ba2; }
+    .upload-area:hover { 
+      background: #e8e9ff; 
+      border-color: #764ba2; 
+    }
+    .upload-area.drag-over { 
+      background: #d0d1ff; 
+      border-color: #764ba2; 
+    }
+    .format-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    .format-btn {
+      padding: 8px 16px;
+      border: 2px solid #667eea;
+      background: white;
+      color: #667eea;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .format-btn:hover {
+      background: #667eea;
+      color: white;
+    }
+    .format-btn.active {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .select-format {
+      padding: 10px;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      color: #667eea;
+      font-weight: 600;
+    }
+    .select-format:focus {
+      outline: none;
+      border-color: #764ba2;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .input-format-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .input-btn {
+      padding: 10px;
+      border: 2px solid #ddd;
+      background: white;
+      color: #667eea;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 13px;
+    }
+    .input-btn:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+    .input-btn.active {
+      border-color: #667eea;
+      background: #667eea;
+      color: white;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .badge-info {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    textarea {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+    }
+    textarea:focus {
+      border-color: #667eea;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    input[type="file"] {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
-<div class="container">
+<div class="container mt-5 mb-5">
   <h2 class="text-center mb-4 text-white">🔄 Universal Data Format Converter</h2>
+  
   <div class="main-card p-4">
     
-    <!-- Upload Section -->
+    <!-- Step 1: Upload Your Data -->
     <div class="section-title">📤 Step 1: Upload Your Data</div>
-  
-      <input type="file" id="fileInput" accept=".xls,.xlsx,.csv,.json,.xml,.html,.sql">
-   
     
-    <textarea id="textInput" class="form-control mt-3" rows="5" placeholder="Or paste your data here (JSON, XML, SQL, HTML table, CSV, MySQL result)..."></textarea>
-    <button id="parseText" class="btn btn-primary mt-2">Parse Pasted Data</button>
+    <!-- Input Format Selection -->
+    <div style="margin-bottom: 15px;">
+      <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Select Input Format:</label>
+      <div class="input-format-group">
+        <button class="input-btn active" data-input-format="auto">Auto Detect</button>
+        <button class="input-btn" data-input-format="json">JSON</button>
+        <button class="input-btn" data-input-format="csv">CSV</button>
+        <button class="input-btn" data-input-format="tsv">TSV</button>
+        <button class="input-btn" data-input-format="xml">XML</button>
+        <button class="input-btn" data-input-format="sql">SQL</button>
+        <button class="input-btn" data-input-format="html">HTML</button>
+        <button class="input-btn" data-input-format="yaml">YAML</button>
+        <button class="input-btn" data-input-format="excel">Excel</button>
+      </div>
+    </div>
 
-    <!-- Sheet Selection -->
-    <select id="sheetSelect" class="form-select mt-3" style="display:none;"></select>
-    
+    <!-- File Input -->
+    <input type="file" id="fileInput" class="form-control" accept=".xls,.xlsx,.csv,.json,.xml,.html,.sql,.tsv,.yaml,.yml">
+    <p style="font-size: 12px; color: #999; margin-top: 5px;">Supported: JSON, CSV, TSV, XML, SQL, HTML, YAML, Excel</p>
+
+    <!-- Uploaded File Info -->
+    <div id="fileInfo" class="badge-info" style="display: none;">
+      📄 File: <span id="fileName"></span>
+    </div>
+
+    <!-- Text Input -->
+    <textarea id="textInput" class="form-control mt-3" rows="6" placeholder="Or paste your data here (JSON, XML, SQL, HTML table, CSV, TSV, YAML)..."></textarea>
+    <div style="margin-top: 10px;">
+      <button id="parseText" class="btn btn-primary">Parse Pasted Data</button>
+    </div>
+
     <div class="loader" id="loader"></div>
 
     <!-- Preview Section -->
     <div id="previewSection" style="display:none;">
       <div class="section-title mt-4">👀 Step 2: Preview Your Data</div>
       <div id="output" class="table-responsive"></div>
-      <div class="text-muted small mt-2">Showing <span id="rowCount">0</span> rows</div>
+      <div class="text-muted small mt-2">
+        Showing <span id="rowCount">0</span> rows
+        <span class="badge-info" style="margin-left: 10px;">✅ Data Loaded</span>
+      </div>
     </div>
 
     <!-- Output Format Selection -->
     <div id="formatSection" style="display:none;">
       <div class="section-title mt-4">🎯 Step 3: Choose Output Format</div>
-      <div class="format-selector" id="formatButtons"></div>
+      <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Select output format from dropdown:</label>
+      <select id="formatSelect" class="select-format" style="width: 100%; max-width: 300px;">
+        <option value="json">JSON</option>
+        <option value="excel">Excel (XLSX)</option>
+        <option value="sql_insert" >SQL Insert</option>
+        <option value="html_table">HTML Table</option>
+        <option value="csv">CSV</option>
+        <option value="tsv">TSV</option>
+        <option value="markdown">Markdown</option>
+        <option value="xml">XML</option>
+        <option value="ascii">ASCII Table</option>
+        <option value="mediawiki">MediaWiki</option>
+        <option value="yaml">YAML</option>
+        <option value="php_array">PHP Array</option>
+        <option value="bbcode">BBCode</option>
+        <option value="ruby">Ruby</option>
+        <option value="restructuredtext">reStructuredText</option>
+        <option value="asp">ASP</option>
+        <option value="actionscript">ActionScript</option>
+        <option value="toml">TOML</option>
+        <option value="ini">INI</option>
+        <option value="firebase">Firebase JSON</option>
+        <option value="qlik">Qlik Script</option>
+        <option value="jsonlines">JSON Lines</option>
+      </select>
+      
+      <!-- Format Buttons for Quick Selection -->
+      <div style="margin-top: 15px;">
+        <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Or click quick buttons:</label>
+        <div class="format-group" id="formatButtons"></div>
+      </div>
     </div>
 
     <!-- Output Display -->
     <div id="outputContainer" style="display:none;">
       <div class="section-title mt-4">✨ Generated Output</div>
       <pre id="codeOutput" class="code-box"></pre>
-      <div class="btn-group mt-3">
+      <div class="btn-group">
         <button id="copyBtn" class="btn btn-success">📋 Copy to Clipboard</button>
         <button id="downloadBtn" class="btn btn-primary">💾 Download File</button>
         <button id="clearBtn" class="btn btn-danger">🗑️ Clear All</button>
@@ -117,46 +290,96 @@
 $(document).ready(function() {
   let parsedData = [];
   let currentFormat = 'json';
+  let selectedInputFormat = 'auto';
   let workbookData = null;
 
-  const formats = [
-    'JSON', 'Excel', 'SQL Insert', 'HTML Table', 'CSV', 'Markdown', 
-    'XML', 'ASCII', 'MediaWiki', 'YAML', 'PHP Array', 'BBCode', 
-    'Ruby', 'reStructuredText', 'ASP', 'ActionScript', 'TOML', 
+  const outputFormats = [
+    'JSON', 'Excel', 'SQL Insert', 'HTML Table', 'CSV', 'TSV', 'Markdown',
+    'XML', 'ASCII', 'MediaWiki', 'YAML', 'PHP Array', 'BBCode',
+    'Ruby', 'reStructuredText', 'ASP', 'ActionScript', 'TOML',
     'INI', 'Firebase', 'Qlik', 'JSONLines'
   ];
 
-  // Initialize format buttons
-  formats.forEach(fmt => {
-    const btn = $(`<button class="format-btn" data-format="${fmt.toLowerCase().replace(/\s+/g, '_')}">${fmt}</button>`);
+  // Initialize format buttons and sync with select options
+  outputFormats.forEach(fmt => {
+    const formatValue = fmt.toLowerCase().replace(/\s+/g, '_');
+    const btn = $(`<button class="format-btn" data-format="${formatValue}">${fmt}</button>`);
     $('#formatButtons').append(btn);
+    
+    // Add option to select if not already present
+    if ($(`#formatSelect option[value="${formatValue}"]`).length === 0) {
+      $(`#formatSelect`).append(`<option value="${formatValue}">${fmt}</option>`);
+    }
   });
 
+  // Input format selection
+  $('.input-btn').on('click', function() {
+    $('.input-btn').removeClass('active');
+    $(this).addClass('active');
+    selectedInputFormat = $(this).data('input-format');
+  });
+
+  // Output format selection - Dropdown
+  $('#formatSelect').on('change', function() {
+    currentFormat = $(this).val();
+    
+    // Save selected format to localStorage
+    localStorage.setItem('converterFormat', currentFormat);
+    
+    $('.format-btn').removeClass('active');
+    $(`button[data-format="${currentFormat}"]`).addClass('active');
+    generateOutput(currentFormat);
+  });
+
+  // Output format selection - Buttons
   $('#formatButtons').on('click', '.format-btn', function() {
     $('.format-btn').removeClass('active');
     $(this).addClass('active');
     currentFormat = $(this).data('format');
+    
+    // Update select dropdown to match button
+    $('#formatSelect').val(currentFormat);
+    
+    // Save selected format to localStorage
+    localStorage.setItem('converterFormat', currentFormat);
+    
     generateOutput(currentFormat);
   });
 
-  // Drag and drop
-  // $('#uploadArea').on('click', () => $('#fileInput').click());
-  
-  // $('#uploadArea').on('dragover', function(e) {
-  //   e.preventDefault();
-  //   $(this).addClass('drag-over');
-  // });
-  
-  // $('#uploadArea').on('dragleave', function() {
-  //   $(this).removeClass('drag-over');
-  // });
-  
-  // $('#uploadArea').on('drop', function(e) {
-  //   e.preventDefault();
-  //   $(this).removeClass('drag-over');
-  //   const file = e.originalEvent.dataTransfer.files[0];
-  //   if (file) handleFile(file);
-  // });
+  // Load data from localStorage on page load
+  function loadFromStorage() {
+    const storedData = localStorage.getItem('converterData');
+    const storedFileName = localStorage.getItem('converterFileName');
+    const storedFormat = localStorage.getItem('converterFormat');
+    
+    if (storedData) {
+      try {
+        parsedData = JSON.parse(storedData);
+        if (storedFileName) {
+          $('#fileName').text(storedFileName);
+          $('#fileInfo').show();
+        }
+        
+        // Restore format and display
+        if (storedFormat) {
+          currentFormat = storedFormat;
+          $('#formatSelect').val(storedFormat);
+        }
+        
+        displayData();
+      } catch (e) {
+        console.log('Could not load stored data');
+      }
+    }
+  }
+
+  // Save data to localStorage
+  function saveToStorage() {
+    localStorage.setItem('converterData', JSON.stringify(parsedData));
+  }
+
+  // Load data on page load
+  loadFromStorage();
 
   $('#fileInput').on('change', function(e) {
     const file = e.target.files[0];
@@ -171,23 +394,41 @@ $(document).ready(function() {
   function handleFile(file) {
     $('#loader').show();
     const ext = file.name.split('.').pop().toLowerCase();
+    
+    // Show file info
+    $('#fileName').text(file.name);
+    $('#fileInfo').show();
+
     const reader = new FileReader();
 
     reader.onload = function(e) {
       const content = e.target.result;
       
-      if (['xls', 'xlsx'].includes(ext)) {
-        parseExcel(content);
-      } else if (ext === 'csv') {
-        parseCSV(content);
-      } else if (ext === 'json') {
-        parseJSON(content);
-      } else if (ext === 'xml') {
-        parseXML(content);
-      } else if (ext === 'html') {
-        parseHTML(content);
-      } else if (ext === 'sql') {
-        parseSQL(content);
+      try {
+        if (['xls', 'xlsx'].includes(ext)) {
+          parseExcel(content);
+        } else if (ext === 'csv') {
+          parseCSV(content);
+        } else if (ext === 'tsv') {
+          parseTSV(content);
+        } else if (ext === 'json') {
+          parseJSON(content);
+        } else if (['yaml', 'yml'].includes(ext)) {
+          parseYAML(content);
+        } else if (ext === 'xml') {
+          parseXML(content);
+        } else if (ext === 'html') {
+          parseHTML(content);
+        } else if (ext === 'sql') {
+          parseSQL(content);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('converterFileName', file.name);
+        saveToStorage();
+      } catch (error) {
+        alert('Error parsing file: ' + error.message);
+        $('#loader').hide();
       }
     };
 
@@ -199,43 +440,58 @@ $(document).ready(function() {
   }
 
   function parseExcel(data) {
-    const uint8Array = new Uint8Array(data);
-    workbookData = XLSX.read(uint8Array, { type: 'array' });
-    const sheetNames = workbookData.SheetNames;
-    
-    $('#sheetSelect').empty();
-    sheetNames.forEach((name, i) => {
-      $('#sheetSelect').append(`<option value="${i}">${name}</option>`);
-    });
-    
-    if (sheetNames.length > 1) $('#sheetSelect').show();
-    
-    const firstSheet = workbookData.Sheets[sheetNames[0]];
-    parsedData = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-    displayData();
+    try {
+      const uint8Array = new Uint8Array(data);
+      workbookData = XLSX.read(uint8Array, { type: 'array' });
+      const firstSheet = workbookData.Sheets[workbookData.SheetNames[0]];
+      parsedData = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+      displayData();
+    } catch (e) {
+      alert('Error parsing Excel file: ' + e.message);
+      $('#loader').hide();
+    }
   }
 
-  $('#sheetSelect').on('change', function() {
-    const index = $(this).val();
-    if (workbookData) {
-      const sheet = workbookData.Sheets[workbookData.SheetNames[index]];
-      parsedData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      displayData();
-    }
-  });
-
   function parseCSV(content) {
-    const lines = content.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    parsedData = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      const obj = {};
-      headers.forEach((h, idx) => obj[h] = values[idx] || '');
-      parsedData.push(obj);
+    try {
+      const lines = content.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      parsedData = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          const obj = {};
+          headers.forEach((h, idx) => obj[h] = values[idx] || '');
+          parsedData.push(obj);
+        }
+      }
+      displayData();
+    } catch (e) {
+      alert('Error parsing CSV: ' + e.message);
+      $('#loader').hide();
     }
-    displayData();
+  }
+
+  function parseTSV(content) {
+    try {
+      const lines = content.trim().split('\n');
+      const headers = lines[0].split('\t').map(h => h.trim());
+      parsedData = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split('\t').map(v => v.trim());
+          const obj = {};
+          headers.forEach((h, idx) => obj[h] = values[idx] || '');
+          parsedData.push(obj);
+        }
+      }
+      displayData();
+    } catch (e) {
+      alert('Error parsing TSV: ' + e.message);
+      $('#loader').hide();
+    }
   }
 
   function parseJSON(content) {
@@ -244,7 +500,18 @@ $(document).ready(function() {
       parsedData = Array.isArray(data) ? data : [data];
       displayData();
     } catch (e) {
-      alert('Invalid JSON format');
+      alert('Invalid JSON format: ' + e.message);
+      $('#loader').hide();
+    }
+  }
+
+  function parseYAML(content) {
+    try {
+      const data = jsyaml.load(content);
+      parsedData = Array.isArray(data) ? data : [data];
+      displayData();
+    } catch (e) {
+      alert('Invalid YAML format: ' + e.message);
       $('#loader').hide();
     }
   }
@@ -263,38 +530,48 @@ $(document).ready(function() {
         }
         parsedData.push(obj);
       }
+      if (parsedData.length === 0) throw new Error('No rows found');
       displayData();
     } catch (e) {
-      alert('Invalid XML format');
+      alert('Error parsing XML: ' + e.message);
       $('#loader').hide();
     }
   }
 
   function parseHTML(content) {
-    const tempDiv = $('<div>').html(content);
-    const table = tempDiv.find('table').first();
-    const headers = [];
-    
-    table.find('thead tr th, tr:first td').each(function() {
-      headers.push($(this).text().trim());
-    });
-    
-    parsedData = [];
-    table.find('tbody tr, tr').slice(1).each(function() {
-      const obj = {};
-      $(this).find('td').each(function(idx) {
-        obj[headers[idx]] = $(this).text().trim();
+    try {
+      const tempDiv = $('<div>').html(content);
+      const table = tempDiv.find('table').first();
+      const headers = [];
+      
+      table.find('thead tr th, thead tr td').each(function() {
+        headers.push($(this).text().trim());
       });
-      if (Object.keys(obj).length > 0) parsedData.push(obj);
-    });
-    displayData();
+      
+      parsedData = [];
+      table.find('tbody tr, tr').slice(1).each(function() {
+        const obj = {};
+        $(this).find('td').each(function(idx) {
+          obj[headers[idx] || `col_${idx}`] = $(this).text().trim();
+        });
+        if (Object.keys(obj).length > 0) parsedData.push(obj);
+      });
+      
+      if (parsedData.length === 0) throw new Error('No table data found');
+      displayData();
+    } catch (e) {
+      alert('Error parsing HTML: ' + e.message);
+      $('#loader').hide();
+    }
   }
 
   function parseSQL(content) {
-    const regex = /INSERT\s+INTO\s+\w+\s*\((.*?)\)\s*VALUES\s*\((.*?)\)/gi;
-    const matches = [...content.matchAll(regex)];
-    
-    if (matches.length > 0) {
+    try {
+      const regex = /INSERT\s+INTO\s+\w+\s*\((.*?)\)\s*VALUES\s*\((.*?)\)/gi;
+      const matches = [...content.matchAll(regex)];
+      
+      if (matches.length === 0) throw new Error('No valid SQL INSERT statements found');
+      
       const headers = matches[0][1].split(',').map(h => h.trim().replace(/[`'"]/g, ''));
       parsedData = [];
       
@@ -305,8 +582,8 @@ $(document).ready(function() {
         parsedData.push(obj);
       });
       displayData();
-    } else {
-      alert('No valid SQL INSERT statements found');
+    } catch (e) {
+      alert('Error parsing SQL: ' + e.message);
       $('#loader').hide();
     }
   }
@@ -314,17 +591,40 @@ $(document).ready(function() {
   function parseTextData(text) {
     $('#loader').show();
     
-    // Try to detect format
-    if (text.startsWith('{') || text.startsWith('[')) {
-      parseJSON(text);
-    } else if (text.includes('INSERT INTO')) {
-      parseSQL(text);
-    } else if (text.includes('<table')) {
-      parseHTML(text);
-    } else if (text.includes('<?xml') || text.includes('<row>')) {
-      parseXML(text);
-    } else {
-      parseCSV(text);
+    try {
+      if (selectedInputFormat !== 'auto') {
+        // Use selected format
+        switch(selectedInputFormat) {
+          case 'json': parseJSON(text); break;
+          case 'csv': parseCSV(text); break;
+          case 'tsv': parseTSV(text); break;
+          case 'xml': parseXML(text); break;
+          case 'sql': parseSQL(text); break;
+          case 'html': parseHTML(text); break;
+          case 'yaml': parseYAML(text); break;
+          default: parseJSON(text);
+        }
+      } else {
+        // Auto detect
+        if (text.startsWith('{') || text.startsWith('[')) {
+          parseJSON(text);
+        } else if (text.includes('INSERT INTO')) {
+          parseSQL(text);
+        } else if (text.includes('<table')) {
+          parseHTML(text);
+        } else if (text.includes('<?xml') || text.includes('<row>')) {
+          parseXML(text);
+        } else if (text.includes('\t')) {
+          parseTSV(text);
+        } else if (text.includes(',')) {
+          parseCSV(text);
+        } else {
+          parseJSON(text);
+        }
+      }
+    } catch (e) {
+      alert('Error parsing data: ' + e.message);
+      $('#loader').hide();
     }
   }
 
@@ -354,11 +654,15 @@ $(document).ready(function() {
     $('#formatSection').show();
     
     // Auto-select JSON format
-    $('.format-btn[data-format="json"]').click();
+    $('#formatSelect').val('json');
+    $('.format-btn').removeClass('active');
+    $('.format-btn[data-format="json"]').addClass('active');
+    currentFormat = 'json';
+    generateOutput('json');
   }
 
   function normalizeKey(key) {
-    return key.trim().toLowerCase().replace(/\s+/g, '_');
+    return key.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   }
 
   function escapeString(str) {
@@ -408,7 +712,15 @@ $(document).ready(function() {
         const csvHeaders = Object.keys(parsedData[0]);
         output = csvHeaders.join(',') + '\n';
         parsedData.forEach(row => {
-          output += csvHeaders.map(h => `"${row[h]}"`).join(',') + '\n';
+          output += csvHeaders.map(h => `"${escapeString(String(row[h]))}"` ).join(',') + '\n';
+        });
+        break;
+
+      case 'tsv':
+        const tsvHeaders = Object.keys(parsedData[0]);
+        output = tsvHeaders.join('\t') + '\n';
+        parsedData.forEach(row => {
+          output += tsvHeaders.map(h => String(row[h])).join('\t') + '\n';
         });
         break;
       
@@ -426,7 +738,7 @@ $(document).ready(function() {
         parsedData.forEach(row => {
           output += '  <row>\n';
           Object.entries(row).forEach(([k, v]) => {
-            output += `    <${normalizeKey(k)}>${v}</${normalizeKey(k)}>\n`;
+            output += `    <${normalizeKey(k)}>${escapeString(v)}</${normalizeKey(k)}>\n`;
           });
           output += '  </row>\n';
         });
@@ -464,7 +776,7 @@ $(document).ready(function() {
         output += '|' + asciiKeys.map((k, i) => k.padEnd(colWidths[i])).join('|') + '|\n';
         output += line;
         parsedData.forEach(row => {
-          output += '|' + asciiKeys.map((k, i) => String(row[k]).padEnd(colWidths[i])).join('|') + '|\n';
+          output += '|' + asciiKeys.map((k, i) => String(row[k] ?? '').padEnd(colWidths[i])).join('|') + '|\n';
         });
         output += line;
         break;
@@ -506,13 +818,13 @@ $(document).ready(function() {
       
       case 'restructuredtext':
         const rstKeys = Object.keys(parsedData[0]);
-        const rstWidths = rstKeys.map(k => Math.max(k.length, ...parsedData.map(r => String(r[k]).length)));
+        const rstWidths = rstKeys.map(k => Math.max(k.length, ...parsedData.map(r => String(r[k] ?? '').length)));
         const rstLine = rstWidths.map(w => '='.repeat(w)).join(' ') + '\n';
         output = rstLine;
         output += rstKeys.map((k, i) => k.padEnd(rstWidths[i])).join(' ') + '\n';
         output += rstLine;
         parsedData.forEach(row => {
-          output += rstKeys.map((k, i) => String(row[k]).padEnd(rstWidths[i])).join(' ') + '\n';
+          output += rstKeys.map((k, i) => String(row[k] ?? '').padEnd(rstWidths[i])).join(' ') + '\n';
         });
         output += rstLine;
         break;
@@ -600,12 +912,14 @@ $(document).ready(function() {
       const originalText = btn.text();
       btn.text('✅ Copied!');
       setTimeout(() => btn.text(originalText), 2000);
+    }).catch(() => {
+      alert('Failed to copy to clipboard');
     });
   });
 
   $('#downloadBtn').on('click', function() {
     const extensions = {
-      json: 'json', sql_insert: 'sql', html_table: 'html', csv: 'csv',
+      json: 'json', sql_insert: 'sql', html_table: 'html', csv: 'csv', tsv: 'tsv',
       markdown: 'md', xml: 'xml', php_array: 'php', yaml: 'yaml',
       ascii: 'txt', mediawiki: 'txt', bbcode: 'txt', ruby: 'rb',
       restructuredtext: 'rst', asp: 'asp', actionscript: 'as',
@@ -614,32 +928,50 @@ $(document).ready(function() {
     };
 
     if (currentFormat === 'excel') {
-      const ws = XLSX.utils.json_to_sheet(parsedData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Data');
-      XLSX.writeFile(wb, 'data.xlsx');
+      try {
+        const ws = XLSX.utils.json_to_sheet(parsedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Data');
+        XLSX.writeFile(wb, 'data.xlsx');
+      } catch (e) {
+        alert('Error generating Excel file: ' + e.message);
+      }
     } else {
       const content = $('#codeOutput').text();
-      const blob = new Blob([content], { type: 'text/plain' });
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `data.${extensions[currentFormat] || 'txt'}`;
       link.click();
+      URL.revokeObjectURL(link.href);
     }
   });
 
   $('#clearBtn').on('click', function() {
     parsedData = [];
     workbookData = null;
+    currentFormat = 'json';
+    selectedInputFormat = 'auto';
+    
+    // Clear localStorage
+    localStorage.removeItem('converterData');
+    localStorage.removeItem('converterFileName');
+    localStorage.removeItem('converterFormat');
+    
     $('#output').empty();
     $('#codeOutput').empty();
     $('#previewSection').hide();
     $('#formatSection').hide();
     $('#outputContainer').hide();
-    $('#sheetSelect').hide();
     $('#textInput').val('');
     $('#fileInput').val('');
+    $('#fileInfo').hide();
+    $('#fileName').text('');
+    
     $('.format-btn').removeClass('active');
+    $('.input-btn').removeClass('active');
+    $('.input-btn[data-input-format="auto"]').addClass('active');
+    $('#formatSelect').val('json');
   });
 });
 </script>

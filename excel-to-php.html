@@ -68,49 +68,6 @@
       margin: 20px 0 15px 0; 
       font-size: 18px;
     }
-    .upload-area {
-      border: 3px dashed #667eea;
-      border-radius: 10px;
-      padding: 30px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s;
-      background: #f8f9ff;
-    }
-    .upload-area:hover { 
-      background: #e8e9ff; 
-      border-color: #764ba2; 
-    }
-    .upload-area.drag-over { 
-      background: #d0d1ff; 
-      border-color: #764ba2; 
-    }
-    .format-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 15px;
-    }
-    .format-btn {
-      padding: 8px 16px;
-      border: 2px solid #667eea;
-      background: white;
-      color: #667eea;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .format-btn:hover {
-      background: #667eea;
-      color: white;
-    }
-    .format-btn.active {
-      background: #667eea;
-      color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
     .select-format {
       padding: 10px;
       border: 2px solid #667eea;
@@ -125,38 +82,6 @@
       outline: none;
       border-color: #764ba2;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    .input-format-group {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .input-btn {
-      padding: 10px;
-      border: 2px solid #ddd;
-      background: white;
-      color: #667eea;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
-      font-size: 13px;
-    }
-    .input-btn:hover {
-      border-color: #667eea;
-      background: #f8f9ff;
-    }
-    .input-btn.active {
-      border-color: #667eea;
-      background: #667eea;
-      color: white;
-    }
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 15px;
     }
     .badge-info {
       display: inline-block;
@@ -183,6 +108,12 @@
       border-radius: 8px;
       padding: 8px;
     }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
@@ -197,17 +128,9 @@
     <!-- Input Format Selection -->
     <div style="margin-bottom: 15px;">
       <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Select Input Format:</label>
-      <div class="input-format-group">
-        <button class="input-btn active" data-input-format="auto">Auto Detect</button>
-        <button class="input-btn" data-input-format="json">JSON</button>
-        <button class="input-btn" data-input-format="csv">CSV</button>
-        <button class="input-btn" data-input-format="tsv">TSV</button>
-        <button class="input-btn" data-input-format="xml">XML</button>
-        <button class="input-btn" data-input-format="sql">SQL</button>
-        <button class="input-btn" data-input-format="html">HTML</button>
-        <button class="input-btn" data-input-format="yaml">YAML</button>
-        <button class="input-btn" data-input-format="excel">Excel</button>
-      </div>
+      <select id="inputFormatSelect" class="select-format" style="width: 100%; max-width: 300px;">
+        <option value="auto">Auto Detect</option>
+      </select>
     </div>
 
     <!-- File Input -->
@@ -240,12 +163,13 @@
     <!-- Output Format Selection -->
     <div id="formatSection" style="display:none;">
       <div class="section-title mt-4">🎯 Step 3: Choose Output Format</div>
-      <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Select output format from dropdown:</label>
+      <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Select output format:</label>
       <select id="formatSelect" class="select-format" style="width: 100%; max-width: 300px;">
+        <option value="html_table">HTML Table</option>
         <option value="json">JSON</option>
         <option value="excel">Excel (XLSX)</option>
-        <option value="sql_insert" >SQL Insert</option>
-        <option value="html_table">HTML Table</option>
+        <option value="sql_insert">SQL Insert</option>
+        
         <option value="csv">CSV</option>
         <option value="tsv">TSV</option>
         <option value="markdown">Markdown</option>
@@ -265,12 +189,6 @@
         <option value="qlik">Qlik Script</option>
         <option value="jsonlines">JSON Lines</option>
       </select>
-      
-      <!-- Format Buttons for Quick Selection -->
-      <div style="margin-top: 15px;">
-        <label style="color: #667eea; font-weight: 600; margin-bottom: 8px; display: block;">Or click quick buttons:</label>
-        <div class="format-group" id="formatButtons"></div>
-      </div>
     </div>
 
     <!-- Output Display -->
@@ -293,64 +211,10 @@ $(document).ready(function() {
   let selectedInputFormat = 'auto';
   let workbookData = null;
 
-  const outputFormats = [
-    'JSON', 'Excel', 'SQL Insert', 'HTML Table', 'CSV', 'TSV', 'Markdown',
-    'XML', 'ASCII', 'MediaWiki', 'YAML', 'PHP Array', 'BBCode',
-    'Ruby', 'reStructuredText', 'ASP', 'ActionScript', 'TOML',
-    'INI', 'Firebase', 'Qlik', 'JSONLines'
-  ];
-
-  // Initialize format buttons and sync with select options
-  outputFormats.forEach(fmt => {
-    const formatValue = fmt.toLowerCase().replace(/\s+/g, '_');
-    const btn = $(`<button class="format-btn" data-format="${formatValue}">${fmt}</button>`);
-    $('#formatButtons').append(btn);
-    
-    // Add option to select if not already present
-    if ($(`#formatSelect option[value="${formatValue}"]`).length === 0) {
-      $(`#formatSelect`).append(`<option value="${formatValue}">${fmt}</option>`);
-    }
-  });
-
-  // Input format selection
-  $('.input-btn').on('click', function() {
-    $('.input-btn').removeClass('active');
-    $(this).addClass('active');
-    selectedInputFormat = $(this).data('input-format');
-  });
-
-  // Output format selection - Dropdown
-  $('#formatSelect').on('change', function() {
-    currentFormat = $(this).val();
-    
-    // Save selected format to localStorage
-    localStorage.setItem('converterFormat', currentFormat);
-    
-    $('.format-btn').removeClass('active');
-    $(`button[data-format="${currentFormat}"]`).addClass('active');
-    generateOutput(currentFormat);
-  });
-
-  // Output format selection - Buttons
-  $('#formatButtons').on('click', '.format-btn', function() {
-    $('.format-btn').removeClass('active');
-    $(this).addClass('active');
-    currentFormat = $(this).data('format');
-    
-    // Update select dropdown to match button
-    $('#formatSelect').val(currentFormat);
-    
-    // Save selected format to localStorage
-    localStorage.setItem('converterFormat', currentFormat);
-    
-    generateOutput(currentFormat);
-  });
-
   // Load data from localStorage on page load
   function loadFromStorage() {
     const storedData = localStorage.getItem('converterData');
     const storedFileName = localStorage.getItem('converterFileName');
-    const storedFormat = localStorage.getItem('converterFormat');
     
     if (storedData) {
       try {
@@ -358,12 +222,6 @@ $(document).ready(function() {
         if (storedFileName) {
           $('#fileName').text(storedFileName);
           $('#fileInfo').show();
-        }
-        
-        // Restore format and display
-        if (storedFormat) {
-          currentFormat = storedFormat;
-          $('#formatSelect').val(storedFormat);
         }
         
         displayData();
@@ -381,6 +239,18 @@ $(document).ready(function() {
   // Load data on page load
   loadFromStorage();
 
+  // Output format selection - Dropdown
+  $('#formatSelect').on('change', function() {
+    currentFormat = $(this).val();
+    generateOutput(currentFormat);
+  });
+
+  // Reset format to first option when data changes
+  function resetFormatToDefault() {
+    $('#formatSelect').val($('#formatSelect option:first').val());
+    currentFormat = $('#formatSelect option:first').val();
+  }
+
   $('#fileInput').on('change', function(e) {
     const file = e.target.files[0];
     if (file) handleFile(file);
@@ -395,7 +265,6 @@ $(document).ready(function() {
     $('#loader').show();
     const ext = file.name.split('.').pop().toLowerCase();
     
-    // Show file info
     $('#fileName').text(file.name);
     $('#fileInfo').show();
 
@@ -593,7 +462,6 @@ $(document).ready(function() {
     
     try {
       if (selectedInputFormat !== 'auto') {
-        // Use selected format
         switch(selectedInputFormat) {
           case 'json': parseJSON(text); break;
           case 'csv': parseCSV(text); break;
@@ -605,7 +473,6 @@ $(document).ready(function() {
           default: parseJSON(text);
         }
       } else {
-        // Auto detect
         if (text.startsWith('{') || text.startsWith('[')) {
           parseJSON(text);
         } else if (text.includes('INSERT INTO')) {
@@ -653,12 +520,9 @@ $(document).ready(function() {
     $('#previewSection').show();
     $('#formatSection').show();
     
-    // Auto-select JSON format
-    $('#formatSelect').val('json');
-    $('.format-btn').removeClass('active');
-    $('.format-btn[data-format="json"]').addClass('active');
-    currentFormat = 'json';
-    generateOutput('json');
+    // Reset format to first option (JSON)
+    resetFormatToDefault();
+    generateOutput(currentFormat);
   }
 
   function normalizeKey(key) {
@@ -685,14 +549,27 @@ $(document).ready(function() {
         break;
       
       case 'sql_insert':
-        const tableName = 'table_name';
-        const keys = Object.keys(normalizedData[0]);
-        normalizedData.forEach(row => {
-          const values = keys.map(k => {
+        const tableName = 'tableName';
+        const originalKeys = Object.keys(parsedData[0]);
+        
+        // Create table definition with normalized column names
+        output = `CREATE TABLE \`${tableName}\` (\n`;
+        originalKeys.forEach((key, idx) => {
+          const normalizedKey = normalizeKey(key);
+          output += `    \`${normalizedKey}\`\tVARCHAR(512)`;
+          if (idx < originalKeys.length - 1) output += ',';
+          output += '\n';
+        });
+        output += ');\n';
+        
+        // Create insert statements
+        parsedData.forEach(row => {
+          const normalizedRowKeys = originalKeys.map(k => normalizeKey(k));
+          const values = originalKeys.map(k => {
             const val = row[k];
-            return typeof val === 'number' ? val : `'${escapeString(val)}'`;
+            return `'${escapeString(String(val))}'`;
           });
-          output += `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+          output += `INSERT INTO \`${tableName}\` (${normalizedRowKeys.map(k => `\`${k}\``).join(', ')}) VALUES (${values.join(', ')});\n`;
         });
         break;
       
@@ -956,7 +833,6 @@ $(document).ready(function() {
     // Clear localStorage
     localStorage.removeItem('converterData');
     localStorage.removeItem('converterFileName');
-    localStorage.removeItem('converterFormat');
     
     $('#output').empty();
     $('#codeOutput').empty();
@@ -968,10 +844,8 @@ $(document).ready(function() {
     $('#fileInfo').hide();
     $('#fileName').text('');
     
-    $('.format-btn').removeClass('active');
-    $('.input-btn').removeClass('active');
-    $('.input-btn[data-input-format="auto"]').addClass('active');
     $('#formatSelect').val('json');
+    $('#inputFormatSelect').val('auto');
   });
 });
 </script>

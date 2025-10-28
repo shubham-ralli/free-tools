@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Watermark Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 992px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+        .canvas-area {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 20px;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .canvas-area.drag-over {
+            border-color: #667eea;
+            background: #f0f2ff;
+            transform: scale(1.02);
+        }
+        .canvas-area:hover {
+            border-color: #667eea;
+        }
+        .canvas-wrapper {
+            max-width: 100%;
+            max-height: 650px;
+            display: none;
+        }
+        .canvas-wrapper.active {
+            display: block;
+        }
+        #previewCanvas {
+            max-width: 100%;
+            max-height: 650px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            cursor: move;
+        }
+        .upload-prompt {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+        }
+        .upload-prompt i {
+            font-size: 80px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        .upload-prompt h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        .upload-prompt p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+        }
+        .upload-prompt .btn {
+            font-size: 1.1rem;
+            padding: 15px 40px;
+        }
+        .controls-panel {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 20px;
+            padding: 30px;
+            height: fit-content;
+        }
+        .control-section {
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .control-section h5 {
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-section h5 i {
+            color: #667eea;
+        }
+        .btn-custom {
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+        .btn-primary-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success-custom {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+            width: 100%;
+            font-size: 1.1rem;
+            padding: 15px;
+        }
+        .btn-success-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(86, 171, 47, 0.4);
+        }
+        .btn-success-custom:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        .slider-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .slider-value {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .form-range {
+            cursor: pointer;
+            height: 8px;
+        }
+        .form-range::-webkit-slider-thumb {
+            background: #667eea;
+            width: 20px;
+            height: 20px;
+        }
+        .form-range::-moz-range-thumb {
+            background: #667eea;
+            width: 20px;
+            height: 20px;
+        }
+        .position-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .position-btn {
+            padding: 12px 8px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #6c757d;
+        }
+        .position-btn:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+            transform: scale(1.05);
+        }
+        .position-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .position-btn i {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .color-picker-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .color-picker-wrapper input[type="color"] {
+            width: 60px;
+            height: 45px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid #dee2e6;
+        }
+        .drag-hint {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .drag-hint i {
+            margin-right: 8px;
+        }
+        .badge-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="fas fa-magic"></i> Image Watermark Tool</h1>
+            <p>Upload, customize, and download your watermarked images in seconds</p>
+        </div>
+        
+        <div class="workspace">
+            <div class="canvas-area" id="canvasArea">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="previewCanvas"></canvas>
+                </div>
+                <div class="upload-prompt" id="uploadPrompt">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Drop Your Image Here</h3>
+                    <p>or click to browse files</p>
+                    <button class="btn btn-primary-custom btn-custom" onclick="document.getElementById('imageInput').click()">
+                        <i class="fas fa-folder-open"></i> Choose Image
+                    </button>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h5><i class="fas fa-upload"></i> Upload Image</h5>
+                    <input type="file" class="form-control" id="imageInput" accept="image/*">
+                </div>
+
+                <div class="control-section">
+                    <h5><i class="fas fa-water"></i> Watermark Type</h5>
+                    <select class="form-select" id="watermarkType">
+                        <option value="text">Text Watermark</option>
+                        <option value="image">Image Watermark</option>
+                    </select>
+                </div>
+
+                <div class="control-section" id="textWatermarkControls">
+                    <h5><i class="fas fa-font"></i> Text Settings</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Watermark Text</label>
+                        <input type="text" class="form-control" id="watermarkText" placeholder="Enter text..." value="© Your Watermark">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Text Color</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="textColor" value="#ffffff">
+                            <input type="text" class="form-control" id="textColorHex" value="#ffffff" placeholder="#ffffff">
+                        </div>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Font Size</span>
+                            <span class="slider-value" id="fontSizeValue">50px</span>
+                        </div>
+                        <input type="range" class="form-range" id="fontSize" min="20" max="200" value="50">
+                    </div>
+                </div>
+
+                <div class="control-section" id="imageWatermarkControls" style="display:none;">
+                    <h5><i class="fas fa-image"></i> Watermark Image</h5>
+                    <input type="file" class="form-control mb-3" id="watermarkImageInput" accept="image/*">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Size</span>
+                            <span class="slider-value" id="watermarkSizeValue">25%</span>
+                        </div>
+                        <input type="range" class="form-range" id="watermarkSize" min="5" max="60" value="25">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h5><i class="fas fa-adjust"></i> Opacity</h5>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Transparency</span>
+                            <span class="slider-value" id="opacityValue">60%</span>
+                        </div>
+                        <input type="range" class="form-range" id="opacity" min="10" max="100" value="60">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h5>
+                        <i class="fas fa-arrows-alt"></i> Position
+                        <span class="badge badge-custom">Click Buttons or Drag</span>
+                    </h5>
+                    <div class="position-grid">
+                        <button class="position-btn" data-position="top-left">
+                            <i class="fas fa-arrow-left"></i>
+                            Top Left
+                        </button>
+                        <button class="position-btn" data-position="top-center">
+                            <i class="fas fa-arrow-up"></i>
+                            Top
+                        </button>
+                        <button class="position-btn" data-position="top-right">
+                            <i class="fas fa-arrow-right"></i>
+                            Top Right
+                        </button>
+                        <button class="position-btn" data-position="middle-left">
+                            <i class="fas fa-arrow-left"></i>
+                            Left
+                        </button>
+                        <button class="position-btn active" data-position="center">
+                            <i class="fas fa-circle"></i>
+                            Center
+                        </button>
+                        <button class="position-btn" data-position="middle-right">
+                            <i class="fas fa-arrow-right"></i>
+                            Right
+                        </button>
+                        <button class="position-btn" data-position="bottom-left">
+                            <i class="fas fa-arrow-left"></i>
+                            Bottom Left
+                        </button>
+                        <button class="position-btn" data-position="bottom-center">
+                            <i class="fas fa-arrow-down"></i>
+                            Bottom
+                        </button>
+                        <button class="position-btn" data-position="bottom-right">
+                            <i class="fas fa-arrow-right"></i>
+                            Bottom Right
+                        </button>
+                    </div>
+                    <div class="drag-hint">
+                        <i class="fas fa-hand-pointer"></i> Or drag watermark directly on the image
+                    </div>
+                </div>
+
+                <button class="btn btn-success-custom btn-custom" id="downloadBtn" disabled>
+                    <i class="fas fa-download"></i> Download Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let mainImage = null;
+        let watermarkImageObj = null;
+        let currentPosition = 'center';
+        let useCustomPosition = false;
+        let watermarkX = 0;
+        let watermarkY = 0;
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        $(document).ready(function() {
+            // Drag and drop for canvas area
+            const canvasArea = document.getElementById('canvasArea');
+            
+            canvasArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).addClass('drag-over');
+            });
+            
+            canvasArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('drag-over');
+            });
+            
+            canvasArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.match('image.*')) {
+                    handleImageFile(files[0]);
+                }
+            });
+
+            // File input change
+            $('#imageInput').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleImageFile(file);
+                }
+            });
+
+            // Watermark image upload
+            $('#watermarkImageInput').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        watermarkImageObj = new Image();
+                        watermarkImageObj.onload = function() {
+                            if (mainImage) {
+                                applyWatermark();
+                            }
+                        };
+                        watermarkImageObj.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Watermark type change
+            $('#watermarkType').on('change', function() {
+                if ($(this).val() === 'text') {
+                    $('#textWatermarkControls').show();
+                    $('#imageWatermarkControls').hide();
+                } else {
+                    $('#textWatermarkControls').hide();
+                    $('#imageWatermarkControls').show();
+                }
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            // Text controls
+            $('#watermarkText').on('input', function() {
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            // Color picker sync
+            $('#textColor').on('input', function() {
+                $('#textColorHex').val($(this).val());
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            $('#textColorHex').on('input', function() {
+                const color = $(this).val();
+                if (/^#[0-9A-F]{6}$/i.test(color)) {
+                    $('#textColor').val(color);
+                    if (mainImage) {
+                        applyWatermark();
+                    }
+                }
+            });
+
+            // Sliders
+            $('#fontSize').on('input', function() {
+                $('#fontSizeValue').text($(this).val() + 'px');
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            $('#watermarkSize').on('input', function() {
+                $('#watermarkSizeValue').text($(this).val() + '%');
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            $('#opacity').on('input', function() {
+                $('#opacityValue').text($(this).val() + '%');
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            // Position buttons
+            $('.position-btn').on('click', function() {
+                $('.position-btn').removeClass('active');
+                $(this).addClass('active');
+                currentPosition = $(this).data('position');
+                useCustomPosition = false;
+                if (mainImage) {
+                    applyWatermark();
+                }
+            });
+
+            // Canvas drag for watermark
+            const canvas = document.getElementById('previewCanvas');
+            
+            canvas.addEventListener('mousedown', function(e) {
+                if (!mainImage) return;
+                
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                const dims = getWatermarkDimensions();
+                const currentPos = useCustomPosition ? 
+                    { x: watermarkX, y: watermarkY } : 
+                    calculatePosition(canvas.width, canvas.height, dims.width, dims.height);
+                
+                const halfWidth = dims.width / 2;
+                const halfHeight = dims.height / 2;
+                
+                if (x >= currentPos.x - halfWidth && x <= currentPos.x + halfWidth &&
+                    y >= currentPos.y - halfHeight && y <= currentPos.y + halfHeight) {
+                    isDragging = true;
+                    dragOffsetX = x - currentPos.x;
+                    dragOffsetY = y - currentPos.y;
+                    canvas.style.cursor = 'grabbing';
+                    $('.position-btn').removeClass('active');
+                }
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                e.preventDefault();
+                const canvas = document.getElementById('previewCanvas');
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                watermarkX = x - dragOffsetX;
+                watermarkY = y - dragOffsetY;
+                
+                const dims = getWatermarkDimensions();
+                watermarkX = Math.max(dims.width / 2, Math.min(canvas.width - dims.width / 2, watermarkX));
+                watermarkY = Math.max(dims.height / 2, Math.min(canvas.height - dims.height / 2, watermarkY));
+                
+                useCustomPosition = true;
+                applyWatermark();
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    document.getElementById('previewCanvas').style.cursor = 'move';
+                }
+            });
+
+            // Touch support for mobile
+            canvas.addEventListener('touchstart', function(e) {
+                if (!mainImage) return;
+                e.preventDefault();
+                
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const touch = e.touches[0];
+                const x = (touch.clientX - rect.left) * scaleX;
+                const y = (touch.clientY - rect.top) * scaleY;
+                
+                const dims = getWatermarkDimensions();
+                const currentPos = useCustomPosition ? 
+                    { x: watermarkX, y: watermarkY } : 
+                    calculatePosition(canvas.width, canvas.height, dims.width, dims.height);
+                
+                const halfWidth = dims.width / 2;
+                const halfHeight = dims.height / 2;
+                
+                if (x >= currentPos.x - halfWidth && x <= currentPos.x + halfWidth &&
+                    y >= currentPos.y - halfHeight && y <= currentPos.y + halfHeight) {
+                    isDragging = true;
+                    dragOffsetX = x - currentPos.x;
+                    dragOffsetY = y - currentPos.y;
+                    $('.position-btn').removeClass('active');
+                }
+            });
+
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                const canvas = document.getElementById('previewCanvas');
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const touch = e.touches[0];
+                const x = (touch.clientX - rect.left) * scaleX;
+                const y = (touch.clientY - rect.top) * scaleY;
+                
+                watermarkX = x - dragOffsetX;
+                watermarkY = y - dragOffsetY;
+                
+                const dims = getWatermarkDimensions();
+                watermarkX = Math.max(dims.width / 2, Math.min(canvas.width - dims.width / 2, watermarkX));
+                watermarkY = Math.max(dims.height / 2, Math.min(canvas.height - dims.height / 2, watermarkY));
+                
+                useCustomPosition = true;
+                applyWatermark();
+            });
+
+            document.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+
+            // Download
+            $('#downloadBtn').on('click', function() {
+                const canvas = document.getElementById('previewCanvas');
+                const link = document.createElement('a');
+                const timestamp = new Date().getTime();
+                link.download = `watermarked-image-${timestamp}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            });
+        });
+
+        function handleImageFile(file) {
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file!');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                mainImage = new Image();
+                mainImage.onload = function() {
+                    $('#uploadPrompt').hide();
+                    $('#canvasWrapper').addClass('active');
+                    $('#downloadBtn').prop('disabled', false);
+                    
+                    const canvas = document.getElementById('previewCanvas');
+                    canvas.width = mainImage.width;
+                    canvas.height = mainImage.height;
+                    
+                    useCustomPosition = false;
+                    
+                    applyWatermark();
+                };
+                mainImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function getWatermarkDimensions() {
+            const canvas = document.getElementById('previewCanvas');
+            const watermarkType = $('#watermarkType').val();
+            
+            if (watermarkType === 'text') {
+                const text = $('#watermarkText').val();
+                const fontSize = parseInt($('#fontSize').val());
+                const ctx = canvas.getContext('2d');
+                ctx.font = `bold ${fontSize}px Arial`;
+                const textMetrics = ctx.measureText(text);
+                return {
+                    width: textMetrics.width,
+                    height: fontSize
+                };
+            } else if (watermarkType === 'image' && watermarkImageObj) {
+                const size = $('#watermarkSize').val() / 100;
+                const watermarkWidth = canvas.width * size;
+                const watermarkHeight = (watermarkImageObj.height / watermarkImageObj.width) * watermarkWidth;
+                return {
+                    width: watermarkWidth,
+                    height: watermarkHeight
+                };
+            }
+            return { width: 100, height: 50 };
+        }
+
+        function applyWatermark() {
+            if (!mainImage) return;
+            
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(mainImage, 0, 0);
+            
+            const opacity = $('#opacity').val() / 100;
+            ctx.globalAlpha = opacity;
+            
+            const watermarkType = $('#watermarkType').val();
+            const dims = getWatermarkDimensions();
+            
+            let pos;
+            if (useCustomPosition) {
+                pos = { x: watermarkX, y: watermarkY };
+            } else {
+                pos = calculatePosition(canvas.width, canvas.height, dims.width, dims.height);
+            }
+            
+            if (watermarkType === 'text') {
+                const text = $('#watermarkText').val();
+                const fontSize = parseInt($('#fontSize').val());
+                const color = $('#textColor').val();
+                
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                ctx.fillText(text, pos.x, pos.y);
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+            } else if (watermarkType === 'image' && watermarkImageObj) {
+                const size = $('#watermarkSize').val() / 100;
+                const watermarkWidth = canvas.width * size;
+                const watermarkHeight = (watermarkImageObj.height / watermarkImageObj.width) * watermarkWidth;
+                
+                ctx.drawImage(
+                    watermarkImageObj, 
+                    pos.x - watermarkWidth / 2, 
+                    pos.y - watermarkHeight / 2, 
+                    watermarkWidth, 
+                    watermarkHeight
+                );
+            }
+            
+            ctx.globalAlpha = 1.0;
+        }
+
+        function calculatePosition(canvasWidth, canvasHeight, elementWidth, elementHeight) {
+            let x, y;
+            const padding = 40;
+            
+            switch(currentPosition) {
+                case 'top-left':
+                    x = elementWidth / 2 + padding;
+                    y = elementHeight / 2 + padding;
+                    break;
+                case 'top-center':
+                    x = canvasWidth / 2;
+                    y = elementHeight / 2 + padding;
+                    break;
+                case 'top-right':
+                    x = canvasWidth - elementWidth / 2 - padding;
+                    y = elementHeight / 2 + padding;
+                    break;
+                case 'middle-left':
+                    x = elementWidth / 2 + padding;
+                    y = canvasHeight / 2;
+                    break;
+                case 'center':
+                    x = canvasWidth / 2;
+                    y = canvasHeight / 2;
+                    break;
+                case 'middle-right':
+                    x = canvasWidth - elementWidth / 2 - padding;
+                    y = canvasHeight / 2;
+                    break;
+                case 'bottom-left':
+                    x = elementWidth / 2 + padding;
+                    y = canvasHeight - elementHeight / 2 - padding;
+                    break;
+                case 'bottom-center':
+                    x = canvasWidth / 2;
+                    y = canvasHeight - elementHeight / 2 - padding;
+                    break;
+                case 'bottom-right':
+                    x = canvasWidth - elementWidth / 2 - padding;
+                    y = canvasHeight - elementHeight / 2 - padding;
+                    break;
+                default:
+                    x = canvasWidth / 2;
+                    y = canvasHeight / 2;
+            }
+            
+            return { x, y };
+        }
+    </script>
+</body>
+</html>

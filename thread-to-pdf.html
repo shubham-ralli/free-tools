@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X Thread to PDF Carousel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* MINIMAL CUSTOM CSS REQUIRED FOR PDF LAYOUT AND OVERALL BODY */
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            font-family: 'Roboto', sans-serif;
+        }
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+
+        /* **CRITICAL CSS FOR PDF GENERATION** */
+        .tweet-card {
+            background: white;
+            width: 800px; /* Target width for A4 aspect ratio in PDF */
+            height: 1100px; /* Target height for A4 aspect ratio in PDF */
+            padding: 80px 60px;
+            box-shadow: none; /* No shadow in PDF */
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Align content to top */
+            align-items: flex-start; /* Align content to left */
+        }
+        .tweet-avatar {
+            width: 70px; /* Slightly reduced size */
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .tweet-header-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .tweet-text {
+            font-size: 22px; /* UPDATED: Font size to 22px */
+            line-height: 1.6;
+            text-align: left; /* Text aligns left */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 100%; /* Allows full width for text */
+            margin-bottom: 30px !important;
+        }
+        .media-grid {
+            display: grid;
+            gap: 6px;
+            margin: 30px 0;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .media-grid.grid-1 { grid-template-columns: 1fr; }
+        .media-grid.grid-2 { grid-template-columns: 1fr 1fr; }
+        .media-grid.grid-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .media-grid.grid-3 img:first-child { grid-row: 1 / 3; }
+        .media-grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .media-grid img {
+            width: 100%;
+         max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+      /*  .media-grid.grid-1 img { height: 350px; }*/
+        /* END CRITICAL CSS */
+
+        .pdf-render-area {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .divider {
+            border-top: 1px solid #e1e8ed;
+            width: 100%;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="text-center mb-4">
+            <h1 class="text-white display-4"><i class="fab fa-twitter"></i> X Thread to PDF</h1>
+            <p class="text-white lead">Convert X/Twitter threads into beautiful carousel PDFs</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-link"></i> Enter Thread URL</h4>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="threadUrl">X/Twitter Thread URL:</label>
+                    <input type="text" class="form-control" id="threadUrl" 
+                           placeholder="https://twitter.com/username/status/1234567890">
+                    <small class="form-text text-muted">Paste the URL of any tweet from the thread.</small>
+                </div>
+                <button class="btn btn-primary btn-generate btn-block" onclick="loadThread()">
+                    <i class="fas fa-search"></i> Load Thread
+                </button>
+                <div class="loading-spinner text-center mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading thread...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="threadPreview" style="display:none;">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-eye"></i> Thread Preview (For PDF Rendering)</h4>
+                </div>
+                <div class="card-body">
+                    <div id="tweetsContainer" class="d-flex flex-column align-items-center"></div>
+                    <button class="btn btn-success btn-block mt-4" onclick="generatePDF()">
+                        <i class="fas fa-file-pdf"></i> Generate PDF Carousel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pdf-render-area" id="pdfRenderArea"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+        let threadData = [];
+
+        function generateMediaGrid(media) {
+            // Check for PHOTOS first
+            let mediaItems = media?.photos || [];
+
+            // NEW LOGIC: Check for VIDEOS and use their thumbnail URLs
+            if (media?.videos && media.videos.length > 0) {
+                // If there are videos, use the thumbnail of the first video
+                // We clear photos and use only the video thumbnail to ensure it renders correctly
+                mediaItems = [{ 
+                    url: media.videos[0].thumbnail_url,
+                    type: 'video' // Add a type flag to identify it in the HTML generation
+                }];
+            }
+            
+            if (mediaItems.length === 0) return '';
+            
+            const maxPhotos = Math.min(mediaItems.length, 4);
+            const gridClass = `media-grid grid-${maxPhotos}`;
+            
+            let html = `<div class="${gridClass}">`;
+            
+            for (let i = 0; i < maxPhotos; i++) {
+                const item = mediaItems[i];
+                const isVideo = item.type === 'video';
+
+                html += `
+                    <div style="position: relative; display: flex; justify-content: center; align-items: center;">
+                        <img src="${item.url}" class="img-fluid" alt="Tweet media ${i + 1}" crossorigin="anonymous">
+                        ${isVideo ? 
+                            // Add a play icon overlay for videos
+                            `<div style="position: absolute; color: white; font-size: 32px; background-color: rgba(0,0,0,0.5); border-radius: 50%; padding: 15px; border: 3px solid white;width: 80px;height: 80px;text-align: center;">
+                                <i class="fas fa-play"></i>
+                            </div>` 
+                            : ''}
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            // Only show 'more images' if there were photos and they exceeded the limit
+            if (media?.photos && media.photos.length > 4) {
+                html += `<div class="text-muted mt-2 small text-center">**+${media.photos.length - 4} more images (not shown in PDF)**</div>`;
+            }
+            
+            return html;
+        }
+
+        // The rest of the functions (extractUsernameAndPostId, loadThread, generatePDF) remain the same...
+
+        function extractUsernameAndPostId(url) {
+            try {
+                const regex = /(?:twitter\.com|x\.com)\/([^\/]+)\/status\/(\d+)/;
+                const match = url.match(regex);
+                if (match) {
+                    return { username: match[1], postId: match[2] };
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function loadThread() {
+            const url = $('#threadUrl').val().trim();
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            const parsed = extractUsernameAndPostId(url);
+            if (!parsed) {
+                alert('Invalid X/Twitter URL. Please use format: https://twitter.com/username/status/1234567890');
+                return;
+            }
+
+            $('.loading-spinner').show();
+            $('.btn-generate').prop('disabled', true);
+            $('#threadPreview').hide();
+
+            try {
+     
+                const apiUrl = `https://api.fxtwitter.com/${parsed.username}/status/${parsed.postId}`;
+                
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch thread: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.thread && data.thread.length > 0) {
+                    // Extract all tweets from the thread array
+                    threadData = data.thread.map(item => item.tweet);
+                    displayThread();
+                    $('#threadPreview').show();
+                } else if (data.tweet) {
+                    // Fallback for single tweet/non-thread endpoint
+                    threadData = [data.tweet];
+                    displayThread();
+                    $('#threadPreview').show();
+                } else {
+                    alert('No tweet data found or API response was invalid.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error loading thread. Please check the URL and try again. (API might be down or URL is a non-thread single tweet)');
+            } finally {
+                $('.loading-spinner').hide();
+                $('.btn-generate').prop('disabled', false);
+            }
+        }
+
+        function displayThread() {
+            const container = $('#tweetsContainer');
+            container.empty();
+
+            threadData.forEach((tweet, index) => {
+                // Use Bootstrap classes for styling where possible
+                const tweetHtml = `
+                    <div class="tweet-card" id="tweet-${index}">
+                        <div class="tweet-header d-flex align-items-center w-100">
+                            <img src="${tweet.author?.avatar_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" 
+                                 class="tweet-avatar mr-3" alt="Avatar" crossorigin="anonymous">
+                            <div class="tweet-header-content">
+                                <div class="h4 font-weight-bold text-dark mb-0">${tweet.author?.name || 'Unknown'}</div>
+                                <div class="text-secondary h6">@${tweet.author?.screen_name || 'unknown'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="tweet-text text-dark w-100">${tweet.text || ''}</div>
+                        
+                        ${tweet.media ? generateMediaGrid(tweet.media) : ''}
+                        
+                        <div class="divider mt-auto"></div>
+                        
+                        <div class="tweet-stats d-flex justify-content-start text-secondary w-100">
+                            <div class="stat-item mr-4 d-flex align-items-center">
+                                <i class="fas fa-retweet mr-2"></i>
+                                <span class="small">${tweet.retweets || 0} Retweets</span>
+                            </div>
+                            <div class="stat-item mr-4 d-flex align-items-center">
+                                <i class="fas fa-heart mr-2"></i>
+                                <span class="small">${tweet.likes || 0} Likes</span>
+                            </div>
+                            <div class="stat-item d-flex align-items-center">
+                                <i class="fas fa-comment mr-2"></i>
+                                <span class="small">${tweet.replies || 0} Replies</span>
+                            </div>
+                            <div class="ml-auto text-muted small">${index + 1} / ${threadData.length}</div>
+                        </div>
+                    </div>
+                `;
+                container.append(tweetHtml);
+            });
+        }
+
+        async function generatePDF() {
+            if (threadData.length === 0) {
+                alert('No thread data to generate PDF');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            try {
+                // Generate tweet pages for ALL tweets in threadData
+                for (let i = 0; i < threadData.length; i++) {
+                    const element = document.getElementById(`tweet-${i}`);
+                    
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+
+                    // Render tweet card as image
+                    const canvas = await html2canvas(element, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        imageTimeout: 0,
+                        removeContainer: true,
+                        width: 800,
+                        height: 1100
+                    });
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    
+                    // Full page image
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+                }
+
+                // --- Add simplified branding/end page ---
+                pdf.addPage();
+                
+                const brandingHTML = `
+                    <div style="width: 794px; height: 1123px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Roboto', sans-serif; text-align: center;">
+                        <div class="text-center mb-2" style="align-items: center;">
+                          <img src="https://pixellize.com/wp-content/uploads/2025/10/pixellize_logo.png" alt="pixellize" title="pixellize" width="600">
+                        </div>
+                        <div class="display-4 text-white font-weight-bold mb-3">Thread PDF Creator</div>
+                        <div class="lead text-white mb-5">Professional X Thread to PDF Converter</div>
+                        <div class="text-white h5 mb-5">Pixellize.com/thread</div>
+                    
+                    </div>
+                `;
+                
+                const brandingDiv = document.createElement('div');
+                brandingDiv.innerHTML = brandingHTML;
+                document.getElementById('pdfRenderArea').appendChild(brandingDiv);
+                
+                const brandingCanvas = await html2canvas(brandingDiv.firstElementChild, {
+                    scale: 2,
+                    backgroundColor: null,
+                    logging: false
+                });
+                
+                const brandingImgData = brandingCanvas.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(brandingImgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+                
+                document.getElementById('pdfRenderArea').innerHTML = '';
+
+                pdf.save('x-thread-carousel.pdf');
+                alert('PDF generated successfully!');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please ensure all images are loaded and try again.');
+            }
+        }
+        
+    // Insert the updated script tag with the new generateMediaGrid function at the end of the <body>.
+
+    </script>
+</body>
+</html>

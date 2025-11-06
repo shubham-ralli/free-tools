@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Text Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+</head>
+<body>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h3 class="mb-0"><i class="fas fa-image"></i> Image to Text Converter</h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Upload Image -->
+                        <div id="uploadSection">
+                            <h5 class="mb-3">Select an Image</h5>
+                            <div class="mb-3">
+                                <input type="file" class="form-control form-control-lg" id="imageInput" accept="image/*">
+                            </div>
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle"></i> Supported formats: JPG, PNG, WEBP, BMP
+                            </div>
+                        </div>
+
+                        <!-- Preview Image -->
+                        <div id="previewSection" style="display: none;">
+                            <h5 class="mb-3">Uploaded Image</h5>
+                            <div class="text-center mb-3">
+                                <img id="previewImage" class="img-fluid rounded border" style="max-height: 300px;" alt="Preview">
+                            </div>
+                        </div>
+
+                        <!-- Loading Spinner -->
+                        <div id="loadingSection" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Extracting text from image...</h5>
+                            <p class="text-muted">Please wait a moment</p>
+                        </div>
+
+                        <!-- Result -->
+                        <div id="resultSection" style="display: none;">
+                            <h5 class="mb-3">Extracted Text</h5>
+                            <div class="alert alert-success" role="alert">
+                                <i class="fas fa-check-circle"></i> Text extracted successfully!
+                            </div>
+                            <textarea id="resultText" class="form-control mb-3" rows="10" readonly></textarea>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button class="btn btn-primary btn-lg" id="copyBtn">
+                                    <i class="fas fa-copy"></i> Copy Text
+                                </button>
+                                <button class="btn btn-success btn-lg" id="downloadBtn">
+                                    <i class="fas fa-download"></i> Download TXT
+                                </button>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-link" id="resetBtn">
+                                    <i class="fas fa-redo"></i> Upload New Image
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+    
+    <script>
+        let extractedText = '';
+        let selectedImage = null;
+
+        $(document).ready(function() {
+            // File input change - automatically extract text
+            $('#imageInput').on('change', function(e) {
+                handleImageSelect(e.target.files[0]);
+            });
+
+            // Extract button
+            $('#extractBtn').on('click', function() {
+                extractText();
+            });
+
+            // Change image button
+            $('#changeImageBtn').on('click', function() {
+                resetApp();
+            });
+
+            // Copy button
+            $('#copyBtn').on('click', function() {
+                copyToClipboard();
+            });
+
+            // Download button
+            $('#downloadBtn').on('click', function() {
+                downloadText();
+            });
+
+            // Reset button
+            $('#resetBtn').on('click', function() {
+                resetApp();
+            });
+        });
+
+        function handleImageSelect(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please select a valid image file');
+                return;
+            }
+
+            selectedImage = file;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                $('#previewImage').attr('src', e.target.result);
+                // $('#uploadSection').hide();
+                $('#previewSection').show();
+                // Auto-start extraction
+                extractText();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function extractText() {
+            if (!selectedImage) {
+                showToast('Please select an image first');
+                return;
+            }
+
+            $('#previewSection').hide();
+            $('#loadingSection').show();
+
+            Tesseract.recognize(
+                selectedImage,
+                'eng',
+                {
+                    logger: function(m) {
+                        if (m.status === 'recognizing text') {
+                            console.log('Progress: ' + (m.progress * 100).toFixed(2) + '%');
+                        }
+                    }
+                }
+            ).then(function(result) {
+                extractedText = result.data.text;
+                
+                $('#loadingSection').hide();
+                
+                if (extractedText.trim()) {
+                    $('#resultText').val(extractedText);
+                    $('#resultSection').show();
+                } else {
+                    showToast('No text found in the image');
+                    $('#previewSection').show();
+                }
+            }).catch(function(error) {
+                console.error('Error:', error);
+                $('#loadingSection').hide();
+                $('#previewSection').show();
+                showToast('Error extracting text. Please try again.');
+            });
+        }
+
+        function copyToClipboard() {
+            if (!extractedText) {
+                showToast('No text to copy');
+                return;
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = extractedText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Text copied to clipboard!');
+            } catch (err) {
+                showToast('Failed to copy text');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+
+        function downloadText() {
+            if (!extractedText) {
+                showToast('No text to download');
+                return;
+            }
+
+            const blob = new Blob([extractedText], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'extracted_text_' + Date.now() + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showToast('Text downloaded successfully!');
+        }
+
+        function resetApp() {
+            // $('#uploadSection').show();
+            $('#previewSection').hide();
+            $('#resultSection').hide();
+            $('#loadingSection').hide();
+            $('#imageInput').val('');
+            extractedText = '';
+            selectedImage = null;
+        }
+
+        function showToast(message) {
+            $('#toastMessage').text(message);
+            const toastEl = document.getElementById('toast');
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    </script>
+</body>
+</html>

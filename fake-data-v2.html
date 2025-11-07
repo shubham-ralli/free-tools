@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Data Generator</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body class="bg-light">
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-body bg-primary text-white rounded">
+                    <h1 class="display-6 mb-2">
+                        <i class="fas fa-database me-2"></i>
+                        Advanced Data Generator
+                    </h1>
+                    <p class="lead mb-0">Generate realistic test data with custom fields and export in multiple formats</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Templates -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i> Quick Templates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-primary w-100 p-3" onclick="loadTemplate('user')">
+                                <i class="fas fa-users fa-2x d-block mb-2"></i>
+                                <strong>User Data</strong>
+                                <small class="d-block text-muted">Name, email, phone</small>
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-success w-100 p-3" onclick="loadTemplate('ecommerce')">
+                                <i class="fas fa-shopping-cart fa-2x d-block mb-2"></i>
+                                <strong>E-commerce</strong>
+                                <small class="d-block text-muted">Products & orders</small>
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-info w-100 p-3" onclick="loadTemplate('company')">
+                                <i class="fas fa-building fa-2x d-block mb-2"></i>
+                                <strong>Company</strong>
+                                <small class="d-block text-muted">Business data</small>
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-warning w-100 p-3" onclick="loadTemplate('financial')">
+                                <i class="fas fa-dollar-sign fa-2x d-block mb-2"></i>
+                                <strong>Financial</strong>
+                                <small class="d-block text-muted">Transactions</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fields Configuration -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i> Field Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div id="fieldsBody" class="mb-3"></div>
+                    <div class="btn-group" role="group">
+                        <button id="addField" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Add Field
+                        </button>
+                        <button id="clearFields" class="btn btn-warning">
+                            <i class="fas fa-eraser me-1"></i> Clear All
+                        </button>
+                        <button id="duplicateField" class="btn btn-info">
+                            <i class="fas fa-copy me-1"></i> Duplicate Last
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Table -->
+    <div class="row mb-5 pb-5">
+        <div class="col">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i> Data Preview</h5>
+                </div>
+                <div class="card-body">
+                    <table id="previewTable" class="table table-striped table-bordered table-hover w-100">
+                        <thead class="table-dark"></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Control Panel -->
+<div class="fixed-bottom bg-white border-top shadow-lg py-3">
+    <div class="container-fluid">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label fw-bold small"><i class="fas fa-hashtag me-1"></i> Rows</label>
+                <input type="number" id="rowCount" class="form-control" value="10" min="1" max="10000">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold small"><i class="fas fa-file me-1"></i> Format</label>
+                <select id="downloadFormat" class="form-select">
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                    <option value="sql">SQL</option>
+                    <option value="excel">Excel</option>
+                    <option value="xml">XML</option>
+                    <option value="html">HTML Table</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="yaml">YAML</option>
+                    <option value="tsv">TSV</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="jsonOptions" style="display:none;">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="jsonArray" checked>
+                    <label class="form-check-label" for="jsonArray">Array format</label>
+                </div>
+            </div>
+            <div class="col-md-3" id="sqlOptions" style="display:none;">
+                <label class="form-label fw-bold small">Table Name</label>
+                <input type="text" id="sqlTableName" class="form-control" value="my_table">
+                <div class="form-check mt-1">
+                    <input type="checkbox" class="form-check-input" id="includeCreateTable" checked>
+                    <label class="form-check-label small" for="includeCreateTable">Include CREATE TABLE</label>
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button id="generateBtn" class="btn btn-success">
+                        <i class="fas fa-play me-1"></i> Generate
+                    </button>
+                    <button id="downloadBtn" class="btn btn-info" style="display:none;">
+                        <i class="fas fa-download me-1"></i> Download
+                    </button>
+                    <button id="copyBtn" class="btn btn-warning" style="display:none;">
+                        <i class="fas fa-clipboard me-1"></i> Copy
+                    </button>
+                    <button id="resetBtn" class="btn btn-danger">
+                        <i class="fas fa-redo me-1"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11; margin-bottom: 80px;">
+    <div id="toast" class="toast align-items-center text-white border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+const fieldTypes = [
+    "id", "firstName", "lastName", "fullName", "maidenName", "email", "phone", "age",
+    "birthDate", "gender", "date", "datetime", "time", "ipAddress", "ipv6", "macAddress",
+    "boolean", "address", "streetAddress", "city", "state", "stateCode", "postalCode", 
+    "country", "countryCode", "latitude", "longitude", "timezone", "companyName", 
+    "companyAddress", "companyPhone", "jobTitle", "department", "number", "decimal", 
+    "price", "currency", "productName", "category", "sku", "barcode", "description", 
+    "url", "domain", "username", "password", "hash", "uuid", "creditCard", "cvv",
+    "iban", "bic", "percentage", "color", "hexColor", "rgbColor", "userAgent", 
+    "mimeType", "fileExtension", "fileName", "semver", "locale"
+];
+
+let userData = [];
+let generatedData = [];
+let generatedHeaders = [];
+
+// Fetch dummy data with fallback
+fetch("https://dummyjson.com/users?limit=100")
+    .then(res => res.json())
+    .then(data => { 
+        userData = data.users || [];
+    })
+    .catch(err => {
+        // Use empty array, will generate default data
+        userData = [];
+    });
+
+// Create field row
+function createFieldRow(name, type, readOnly = false) {
+    let row = document.createElement("div");
+    row.className = "card mb-2";
+    row.innerHTML = `
+        <div class="card-body p-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <i class="fas fa-grip-vertical text-muted drag-handle" style="cursor: grab;"></i>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" placeholder="Field Name" value="${name}" ${readOnly ? "readonly" : ""}>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm typeSelect"></select>
+                </div>
+                <div class="col-md-2 minValContainer" style="display:none;">
+                    <input type="number" class="form-control form-control-sm minVal" placeholder="Min">
+                </div>
+                <div class="col-md-2 maxValContainer" style="display:none;">
+                    <input type="number" class="form-control form-control-sm maxVal" placeholder="Max">
+                </div>
+                <div class="col-md-2 minDateContainer" style="display:none;">
+                    <input type="date" class="form-control form-control-sm minDate">
+                </div>
+                <div class="col-md-2 maxDateContainer" style="display:none;">
+                    <input type="date" class="form-control form-control-sm maxDate">
+                </div>
+                <div class="col-md">
+                    <input type="text" class="form-control form-control-sm defaultVal" placeholder="Default Value">
+                </div>
+                <div class="col-auto">
+                    ${readOnly ? "" : `<button class="btn btn-danger btn-sm removeField"><i class="fas fa-trash"></i></button>`}
+                </div>
+            </div>
+        </div>
+    `;
+    populateTypeSelect(row.querySelector(".typeSelect"), type);
+    return row;
+}
+
+function populateTypeSelect(select, selected) {
+    fieldTypes.forEach(ft => {
+        let opt = document.createElement("option");
+        opt.value = ft;
+        opt.textContent = ft.charAt(0).toUpperCase() + ft.slice(1).replace(/([A-Z])/g, ' $1');
+        if (ft === selected) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+// Initialize default fields
+function initializeFields() {
+    $("#fieldsBody").html('');
+    $("#fieldsBody").append(createFieldRow("id", "id", true));
+    $("#fieldsBody").append(createFieldRow("name", "fullName"));
+    $("#fieldsBody").append(createFieldRow("email", "email"));
+}
+
+initializeFields();
+
+// Add field
+$("#addField").on("click", () => {
+    $("#fieldsBody").append(createFieldRow("", "firstName"));
+    showToast("Field added successfully", "success");
+});
+
+// Clear fields
+$("#clearFields").on("click", () => {
+    if (confirm("Are you sure you want to clear all fields?")) {
+        initializeFields();
+        showToast("All fields cleared", "warning");
+    }
+});
+
+// Duplicate last field
+$("#duplicateField").on("click", () => {
+    let lastRow = $("#fieldsBody .card").last();
+    if (lastRow.length) {
+        let inputs = lastRow.find("input, select");
+        let name = inputs.eq(1).val() + "_copy";
+        let type = inputs.eq(2).val();
+        $("#fieldsBody").append(createFieldRow(name, type));
+        showToast("Field duplicated", "info");
+    }
+});
+
+// Remove field
+$(document).on("click", ".removeField", function() {
+    $(this).closest('.card').remove();
+    showToast("Field removed", "danger");
+});
+
+// Show/hide options based on field type
+$(document).on("change", ".typeSelect", function() {
+    let row = $(this).closest('.card-body');
+    row.find(".minValContainer, .maxValContainer, .minDateContainer, .maxDateContainer").hide();
+    let type = $(this).val();
+    if (type === "number" || type === "decimal" || type === "price" || type === "percentage" || type === "age") {
+        row.find(".minValContainer, .maxValContainer").show();
+    } else if (type === "date" || type === "birthDate" || type === "datetime") {
+        row.find(".minDateContainer, .maxDateContainer").show();
+    }
+});
+
+// Drag & Drop
+new Sortable(document.getElementById("fieldsBody"), {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'opacity-50'
+});
+
+// Format-specific UI
+$("#downloadFormat").on("change", function() {
+    $("#jsonOptions, #sqlOptions").hide();
+    if (this.value === "json") $("#jsonOptions").show();
+    if (this.value === "sql") $("#sqlOptions").show();
+});
+
+// Generate data
+$("#generateBtn").on("click", function() {
+    console.log("Generate button clicked");
+    
+    let rows = parseInt($("#rowCount").val());
+    console.log("Rows to generate:", rows);
+    
+    if (rows < 1 || rows > 10000) {
+        alert("Please enter a valid number of rows (1-10000)");
+        return;
+    }
+
+    let fields = [];
+    $("#fieldsBody .card").each(function() {
+        let cardBody = $(this).find(".card-body");
+        let inputs = cardBody.find("input");
+        let selects = cardBody.find("select");
+        
+        let name = inputs.eq(0).val(); // First input is the field name
+        if (!name) return;
+        
+        let type = selects.eq(0).val(); // First select is the type
+        let min = inputs.eq(1).val();
+        let max = inputs.eq(2).val();
+        let minDate = inputs.eq(3).val();
+        let maxDate = inputs.eq(4).val();
+        let def = inputs.eq(5).val();
+        
+        console.log("Field:", {name, type, min, max, minDate, maxDate, def});
+        fields.push({ name, type, min, max, minDate, maxDate, def });
+    });
+
+    console.log("Fields found:", fields.length);
+    console.log("Fields array:", JSON.stringify(fields));
+
+    if (fields.length === 0) {
+        alert("Please add at least one field");
+        return;
+    }
+
+    let output = [];
+    for (let i = 0; i < rows; i++) {
+        let row = {};
+        fields.forEach(f => {
+            row[f.name] = generateFieldData(f, i);
+        });
+        output.push(row);
+    }
+    generatedData = output;
+    generatedHeaders = fields.map(f => f.name);
+
+    console.log("Generated data:", generatedData.length, "rows");
+    console.log("First row:", JSON.stringify(generatedData[0]));
+    console.log("Headers:", generatedHeaders);
+
+    renderTable();
+    $("#downloadBtn, #copyBtn").show();
+    showToast(`Successfully generated ${rows} rows`, "success");
+});
+
+// Generate field data
+function generateFieldData(f, index) {
+    if (f.def) return f.def;
+    let user = userData[index % userData.length] || {};
+    
+    switch(f.type) {
+        case "id": return index + 1;
+        case "firstName": return user.firstName || "John";
+        case "lastName": return user.lastName || "Doe";
+        case "fullName": return `${user.firstName || "John"} ${user.lastName || "Doe"}`;
+        case "maidenName": return user.maidenName || "Smith";
+        case "email": return user.email || `user${index}@example.com`;
+        case "phone": return user.phone || `+1-${rand(200, 999)}-${rand(100, 999)}-${rand(1000, 9999)}`;
+        case "age": return user.age || rand(parseInt(f.min) || 18, parseInt(f.max) || 80);
+        case "birthDate": return user.birthDate || randomDate(new Date('1940-01-01'), new Date('2005-12-31')).toISOString().split('T')[0];
+        case "gender": return user.gender || (Math.random() < 0.5 ? "male" : "female");
+        case "address": return user.address?.address || `${rand(100, 9999)} Main St`;
+        case "streetAddress": return `${rand(100, 9999)} ${['Main', 'Oak', 'Park', 'Elm', 'Pine'][rand(0, 4)]} ${['St', 'Ave', 'Blvd', 'Rd'][rand(0, 3)]}`;
+        case "city": return user.address?.city || ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"][rand(0, 4)];
+        case "state": return user.address?.state || ["California", "Texas", "Florida", "New York"][rand(0, 3)];
+        case "stateCode": return user.address?.stateCode || ["CA", "TX", "FL", "NY"][rand(0, 3)];
+        case "postalCode": return user.address?.postalCode || String(rand(10000, 99999));
+        case "country": return user.address?.country || ["United States", "Canada", "United Kingdom", "Australia"][rand(0, 3)];
+        case "countryCode": return ["US", "CA", "GB", "AU"][rand(0, 3)];
+        case "latitude": return (Math.random() * 180 - 90).toFixed(6);
+        case "longitude": return (Math.random() * 360 - 180).toFixed(6);
+        case "timezone": return ["America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Tokyo"][rand(0, 3)];
+        case "companyName": return user.company?.name || ["Acme Corp", "TechCo", "GlobalTech", "Innovate Ltd"][rand(0, 3)];
+        case "companyAddress": return user.company?.address?.address || `${rand(100, 9999)} Business Blvd`;
+        case "companyPhone": return user.company?.phone || `+1-${rand(200, 999)}-${rand(100, 999)}-${rand(1000, 9999)}`;
+        case "jobTitle": return ["Manager", "Developer", "Designer", "Analyst", "Director"][rand(0, 4)];
+        case "department": return ["IT", "Sales", "Marketing", "HR", "Finance"][rand(0, 4)];
+        case "ipAddress": return `${rand(1, 255)}.${rand(0, 255)}.${rand(0, 255)}.${rand(0, 255)}`;
+        case "ipv6": return Array(8).fill(0).map(() => rand(0, 65535).toString(16)).join(':');
+        case "macAddress": return Array(6).fill(0).map(() => rand(0, 255).toString(16).padStart(2, '0')).join(':');
+        case "boolean": return Math.random() < 0.5 ? "true" : "false";
+        case "number":
+            let min = parseInt(f.min) || 0;
+            let max = parseInt(f.max) || 1000;
+            return rand(min, max);
+        case "decimal":
+            let dMin = parseFloat(f.min) || 0;
+            let dMax = parseFloat(f.max) || 100;
+            return (Math.random() * (dMax - dMin) + dMin).toFixed(2);
+        case "price":
+            let minPrice = parseFloat(f.min) || 0;
+            let maxPrice = parseFloat(f.max) || 999;
+            return (Math.random() * (maxPrice - minPrice) + minPrice).toFixed(2);
+        case "currency": return ["USD", "EUR", "GBP", "JPY", "CAD"][rand(0, 4)];
+        case "percentage": return rand(parseInt(f.min) || 0, parseInt(f.max) || 100) + "%";
+        case "productName":
+            const products = ["Laptop", "Phone", "Tablet", "Monitor", "Keyboard", "Mouse", "Headphones", "Speaker", "Camera", "Printer"];
+            return products[rand(0, products.length - 1)];
+        case "category":
+            const categories = ["Electronics", "Clothing", "Food", "Books", "Toys", "Sports", "Home", "Garden", "Beauty", "Automotive"];
+            return categories[rand(0, categories.length - 1)];
+        case "sku": return `SKU-${rand(10000, 99999)}`;
+        case "barcode": return Array(13).fill(0).map(() => rand(0, 9)).join('');
+        case "description": return "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+        case "url": return `https://example.com/${Math.random().toString(36).substr(2, 9)}`;
+        case "domain": return `${Math.random().toString(36).substr(2, 9)}.com`;
+        case "username": return `user${index}_${Math.random().toString(36).substr(2, 5)}`;
+        case "password": return Math.random().toString(36).substr(2, 12) + Math.random().toString(36).substr(2, 12).toUpperCase();
+        case "hash": return Array(64).fill(0).map(() => rand(0, 15).toString(16)).join('');
+        case "uuid": return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        case "creditCard": return `${rand(1000, 9999)}-${rand(1000, 9999)}-${rand(1000, 9999)}-${rand(1000, 9999)}`;
+        case "cvv": return String(rand(100, 999));
+        case "iban": return `GB${rand(10, 99)}NWBK${rand(100000, 999999)}${rand(10000000, 99999999)}`;
+        case "bic": return Array(6).fill(0).map(() => String.fromCharCode(65 + rand(0, 25))).join('') + rand(10, 99);
+        case "color": return ["Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink", "Black", "White"][rand(0, 8)];
+        case "hexColor": return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        case "rgbColor": return `rgb(${rand(0,255)}, ${rand(0,255)}, ${rand(0,255)})`;
+        case "userAgent": return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+        case "mimeType": return ["text/html", "application/json", "image/png", "video/mp4", "audio/mpeg"][rand(0, 4)];
+        case "fileExtension": return [".jpg", ".png", ".pdf", ".docx", ".xlsx", ".mp4", ".mp3"][rand(0, 6)];
+        case "fileName": return `file_${rand(1000, 9999)}${[".jpg", ".png", ".pdf", ".docx"][rand(0, 3)]}`;
+        case "semver": return `${rand(0, 9)}.${rand(0, 20)}.${rand(0, 50)}`;
+        case "locale": return ["en-US", "en-GB", "es-ES", "fr-FR", "de-DE", "ja-JP"][rand(0, 5)];
+        case "date":
+            let minDate = f.minDate ? new Date(f.minDate) : new Date('2000-01-01');
+            let maxDate = f.maxDate ? new Date(f.maxDate) : new Date();
+            return randomDate(minDate, maxDate).toISOString().split('T')[0];
+        case "datetime":
+            let minDT = f.minDate ? new Date(f.minDate) : new Date('2000-01-01');
+            let maxDT = f.maxDate ? new Date(f.maxDate) : new Date();
+            return randomDate(minDT, maxDT).toISOString();
+        case "time": return `${String(rand(0, 23)).padStart(2, '0')}:${String(rand(0, 59)).padStart(2, '0')}:${String(rand(0, 59)).padStart(2, '0')}`;
+        default: return "";
+    }
+}
+
+function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomDate(start, end) {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+// Render table
+function renderTable() {
+    console.log("renderTable called");
+    console.log("Headers:", generatedHeaders);
+    console.log("Data length:", generatedData.length);
+    console.log("Sample data:", JSON.stringify(generatedData[0]));
+    
+    // Destroy existing DataTable if it exists
+    var table = $('#previewTable');
+    if (table.DataTable) {
+        try {
+            if ($.fn.dataTable.isDataTable('#previewTable')) {
+                table.DataTable().destroy();
+                console.log("Destroyed existing DataTable");
+            }
+        } catch(e) {
+            console.log("Error destroying DataTable:", e);
+        }
+    }
+    
+    // Build table HTML
+    let headerHtml = "<tr>" + generatedHeaders.map(h => `<th>${h}</th>`).join("") + "</tr>";
+    table.find('thead').html(headerHtml);
+    console.log("Header HTML set");
+    
+    let bodyHtml = "";
+    generatedData.forEach((row, idx) => {
+        console.log("Row " + idx + ":", JSON.stringify(row));
+        bodyHtml += "<tr>";
+        generatedHeaders.forEach(header => {
+            let value = row[header];
+            console.log("  Header:", header, "Value:", value);
+            bodyHtml += `<td>${value !== undefined ? value : ''}</td>`;
+        });
+        bodyHtml += "</tr>";
+    });
+    table.find('tbody').html(bodyHtml);
+    console.log("Body HTML set, rows:", generatedData.length);
+    console.log("Table HTML:", table.find('tbody').html().substring(0, 300));
+    
+    // Initialize DataTable
+    setTimeout(function() {
+        try {
+            if ($.fn.dataTable) {
+                table.DataTable({
+                    paging: true,
+                    searching: true,
+                    info: true,
+                    pageLength: 25,
+                    order: [[0, 'asc']],
+                    destroy: true
+                });
+                console.log("DataTable initialized successfully");
+            } else {
+                console.log("DataTable library not loaded");
+            }
+        } catch(e) {
+            console.log("Error initializing DataTable:", e);
+            console.log("Table is visible as plain HTML table");
+        }
+    }, 100);
+}
+
+// Download functionality
+$("#downloadBtn").on("click", function() {
+    let format = $("#downloadFormat").val();
+    
+    if (format === "csv") {
+        let csv = generatedHeaders.join(",") + "\n";
+        generatedData.forEach(r => {
+            csv += generatedHeaders.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+        downloadFile(csv, "data.csv", "text/csv");
+        showToast("CSV downloaded", "success");
+    }
+    else if (format === "tsv") {
+        let tsv = generatedHeaders.join("\t") + "\n";
+        generatedData.forEach(r => {
+            tsv += generatedHeaders.map(h => String(r[h])).join("\t") + "\n";
+        });
+        downloadFile(tsv, "data.tsv", "text/tab-separated-values");
+        showToast("TSV downloaded", "success");
+    }
+    else if (format === "json") {
+        if ($("#jsonArray").is(":checked")) {
+            downloadFile(JSON.stringify(generatedData, null, 2), "data.json", "application/json");
+        } else {
+            let text = generatedData.map(o => JSON.stringify(o)).join("\n");
+            downloadFile(text, "data.json", "application/json");
+        }
+        showToast("JSON downloaded", "success");
+    } 
+    else if (format === "sql") {
+        let table = $("#sqlTableName").val() || "my_table";
+        let sql = "";
+        
+        if ($("#includeCreateTable").is(":checked")) {
+            sql += `CREATE TABLE ${table} (\n`;
+            sql += generatedHeaders.map((h, i) => 
+                `  \`${h}\` VARCHAR(255)${i < generatedHeaders.length - 1 ? ',' : ''}`
+            ).join("\n");
+            sql += "\n);\n\n";
+        }
+        
+        generatedData.forEach(r => {
+            sql += `INSERT INTO ${table} (${generatedHeaders.map(h => `\`${h}\``).join(", ")}) VALUES (`;
+            sql += generatedHeaders.map(h => `'${String(r[h]).replace(/'/g, "''")}'`).join(", ");
+            sql += ");\n";
+        });
+        
+        downloadFile(sql, "data.sql", "application/sql");
+        showToast("SQL downloaded", "success");
+    } 
+    else if (format === "excel") {
+        let ws = XLSX.utils.json_to_sheet(generatedData);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.writeFile(wb, "data.xlsx");
+        showToast("Excel downloaded", "success");
+    }
+    else if (format === "xml") {
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<data>\n';
+        generatedData.forEach(r => {
+            xml += '  <record>\n';
+            generatedHeaders.forEach(h => {
+                xml += `    <${h}>${escapeXml(String(r[h]))}</${h}>\n`;
+            });
+            xml += '  </record>\n';
+        });
+        xml += '</data>';
+        downloadFile(xml, "data.xml", "application/xml");
+        showToast("XML downloaded", "success");
+    }
+    else if (format === "html") {
+        let html = '<!DOCTYPE html>\n<html>\n<head>\n';
+        html += '<meta charset="UTF-8">\n';
+        html += '<title>Generated Data</title>\n';
+        html += '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">\n';
+        html += '</head>\n<body class="p-4">\n';
+        html += '<div class="container">\n';
+        html += '<h1 class="mb-4">Generated Data</h1>\n';
+        html += '<table class="table table-striped table-bordered">\n<thead class="table-dark">\n<tr>';
+        html += generatedHeaders.map(h => `<th>${h}</th>`).join('');
+        html += '</tr>\n</thead>\n<tbody>\n';
+        generatedData.forEach(r => {
+            html += '<tr>';
+            html += generatedHeaders.map(h => `<td>${escapeXml(String(r[h]))}</td>`).join('');
+            html += '</tr>\n';
+        });
+        html += '</tbody>\n</table>\n</div>\n</body>\n</html>';
+        downloadFile(html, "data.html", "text/html");
+        showToast("HTML downloaded", "success");
+    }
+    else if (format === "markdown") {
+        let md = '# Generated Data\n\n';
+        md += '| ' + generatedHeaders.join(' | ') + ' |\n';
+        md += '| ' + generatedHeaders.map(() => '---').join(' | ') + ' |\n';
+        generatedData.forEach(r => {
+            md += '| ' + generatedHeaders.map(h => String(r[h]).replace(/\|/g, '\\|')).join(' | ') + ' |\n';
+        });
+        downloadFile(md, "data.md", "text/markdown");
+        showToast("Markdown downloaded", "success");
+    }
+    else if (format === "yaml") {
+        let yaml = '---\ndata:\n';
+        generatedData.forEach((r, i) => {
+            yaml += `  - record_${i + 1}:\n`;
+            generatedHeaders.forEach(h => {
+                yaml += `      ${h}: ${JSON.stringify(r[h])}\n`;
+            });
+        });
+        downloadFile(yaml, "data.yaml", "text/yaml");
+        showToast("YAML downloaded", "success");
+    }
+});
+
+// Copy to clipboard
+$("#copyBtn").on("click", function() {
+    let format = $("#downloadFormat").val();
+    let content = "";
+    
+    if (format === "csv") {
+        content = generatedHeaders.join(",") + "\n";
+        generatedData.forEach(r => {
+            content += generatedHeaders.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+    } else if (format === "json") {
+        content = JSON.stringify(generatedData, null, 2);
+    } else if (format === "tsv") {
+        content = generatedHeaders.join("\t") + "\n";
+        generatedData.forEach(r => {
+            content += generatedHeaders.map(h => String(r[h])).join("\t") + "\n";
+        });
+    } else if (format === "markdown") {
+        content = '| ' + generatedHeaders.join(' | ') + ' |\n';
+        content += '| ' + generatedHeaders.map(() => '---').join(' | ') + ' |\n';
+        generatedData.forEach(r => {
+            content += '| ' + generatedHeaders.map(h => String(r[h]).replace(/\|/g, '\\|')).join(' | ') + ' |\n';
+        });
+    } else {
+        showToast("Copy available for CSV, JSON, TSV, Markdown", "warning");
+        return;
+    }
+    
+    navigator.clipboard.writeText(content).then(() => {
+        showToast("Copied to clipboard!", "success");
+    }).catch(() => {
+        showToast("Failed to copy", "danger");
+    });
+});
+
+// Reset everything
+$("#resetBtn").on("click", function() {
+    if (confirm("Are you sure you want to reset everything?")) {
+        initializeFields();
+        generatedData = [];
+        generatedHeaders = [];
+        $("#rowCount").val(10);
+        $("#downloadFormat").val("csv");
+        $("#downloadBtn, #copyBtn").hide();
+        
+        try {
+            if ($.fn.DataTable && $.fn.DataTable.isDataTable && $.fn.DataTable.isDataTable('#previewTable')) {
+                $('#previewTable').DataTable().destroy();
+            }
+        } catch(e) {}
+        
+        $("#previewTable thead").html('');
+        $("#previewTable tbody").html('');
+        
+        showToast("Reset complete", "info");
+    }
+});
+
+// Template loading
+function loadTemplate(type) {
+    $("#fieldsBody").html('');
+    
+    switch(type) {
+        case 'user':
+            $("#fieldsBody").append(createFieldRow("id", "id", true));
+            $("#fieldsBody").append(createFieldRow("firstName", "firstName"));
+            $("#fieldsBody").append(createFieldRow("lastName", "lastName"));
+            $("#fieldsBody").append(createFieldRow("email", "email"));
+            $("#fieldsBody").append(createFieldRow("phone", "phone"));
+            $("#fieldsBody").append(createFieldRow("age", "age"));
+            $("#fieldsBody").append(createFieldRow("gender", "gender"));
+            $("#fieldsBody").append(createFieldRow("address", "address"));
+            $("#fieldsBody").append(createFieldRow("city", "city"));
+            $("#fieldsBody").append(createFieldRow("country", "country"));
+            break;
+            
+        case 'ecommerce':
+            $("#fieldsBody").append(createFieldRow("order_id", "id", true));
+            $("#fieldsBody").append(createFieldRow("product", "productName"));
+            $("#fieldsBody").append(createFieldRow("category", "category"));
+            $("#fieldsBody").append(createFieldRow("sku", "sku"));
+            $("#fieldsBody").append(createFieldRow("price", "price"));
+            $("#fieldsBody").append(createFieldRow("quantity", "number"));
+            $("#fieldsBody").append(createFieldRow("customer_name", "fullName"));
+            $("#fieldsBody").append(createFieldRow("customer_email", "email"));
+            $("#fieldsBody").append(createFieldRow("order_date", "date"));
+            $("#fieldsBody").append(createFieldRow("status", "boolean"));
+            break;
+            
+        case 'company':
+            $("#fieldsBody").append(createFieldRow("company_id", "id", true));
+            $("#fieldsBody").append(createFieldRow("company_name", "companyName"));
+            $("#fieldsBody").append(createFieldRow("address", "companyAddress"));
+            $("#fieldsBody").append(createFieldRow("phone", "companyPhone"));
+            $("#fieldsBody").append(createFieldRow("email", "email"));
+            $("#fieldsBody").append(createFieldRow("website", "url"));
+            $("#fieldsBody").append(createFieldRow("domain", "domain"));
+            $("#fieldsBody").append(createFieldRow("country", "country"));
+            $("#fieldsBody").append(createFieldRow("employees", "number"));
+            break;
+            
+        case 'financial':
+            $("#fieldsBody").append(createFieldRow("transaction_id", "uuid"));
+            $("#fieldsBody").append(createFieldRow("account_holder", "fullName"));
+            $("#fieldsBody").append(createFieldRow("credit_card", "creditCard"));
+            $("#fieldsBody").append(createFieldRow("cvv", "cvv"));
+            $("#fieldsBody").append(createFieldRow("iban", "iban"));
+            $("#fieldsBody").append(createFieldRow("bic", "bic"));
+            $("#fieldsBody").append(createFieldRow("amount", "price"));
+            $("#fieldsBody").append(createFieldRow("currency", "currency"));
+            $("#fieldsBody").append(createFieldRow("transaction_date", "datetime"));
+            $("#fieldsBody").append(createFieldRow("description", "description"));
+            break;
+    }
+    
+    showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} template loaded`, "info");
+}
+
+// Helper functions
+function downloadFile(content, fileName, type) {
+    let blob = new Blob([content], { type });
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function escapeXml(str) {
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&apos;');
+}
+
+function showToast(message, type) {
+    let bgClass = {
+        'success': 'bg-success',
+        'danger': 'bg-danger',
+        'warning': 'bg-warning',
+        'info': 'bg-info'
+    }[type] || 'bg-primary';
+    
+    let toastEl = document.getElementById('toast');
+    toastEl.className = `toast align-items-center text-white border-0 ${bgClass}`;
+    toastEl.querySelector('.toast-body').textContent = message;
+    
+    let toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+</script>
+</body>
+</html>

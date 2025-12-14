@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo & Signature Merger</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .upload-box {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        .upload-box:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #livePreviewCanvas {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        #finalCanvas {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .section-title {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        .input-group-text {
+            background: #667eea;
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <h1 class="text-center mb-4" style="color: #667eea; font-weight: 800;">📸 Photo & Signature Merger</h1>
+            
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h4 class="section-title">Upload Photo</h4>
+                    <div class="upload-box" onclick="document.getElementById('photoInput').click()">
+                        <i style="font-size: 48px;">📷</i>
+                        <p class="mt-2 mb-0">Click to upload photo</p>
+                        <input type="file" id="photoInput" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <h4 class="section-title">Upload Signature</h4>
+                    <div class="upload-box" onclick="document.getElementById('signatureInput').click()">
+                        <i style="font-size: 48px;">✍️</i>
+                        <p class="mt-2 mb-0">Click to upload signature</p>
+                        <input type="file" id="signatureInput" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <h4 class="section-title">Live Preview</h4>
+                    <div class="preview-container">
+                        <canvas id="livePreviewCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <h4 class="section-title">Image Settings</h4>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Unit Type</label>
+                        <select class="form-select" id="unitType">
+                            <option value="px">Pixels (px)</option>
+                            <option value="cm">Centimeters (cm)</option>
+                            <option value="inch">Inches (inch)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Output Width</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="outputWidth" value="800" min="1" step="0.1">
+                            <span class="input-group-text" id="widthUnit">px</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Output Height</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="outputHeight" value="600" min="1" step="0.1">
+                            <span class="input-group-text" id="heightUnit">px</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="addBorder">
+                        <label class="form-check-label" for="addBorder">
+                            <strong>Add Border (1px black)</strong>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <h4 class="section-title">Signature Settings</h4>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="overlapSignature">
+                        <label class="form-check-label" for="overlapSignature">
+                            <strong>Overlap signature on photo</strong>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3" id="signatureWidthContainer" style="display: none;">
+                        <label class="form-label">Signature Width: <span id="sigWidthValue">200</span> <span id="sigWidthUnitLabel">px</span></label>
+                        <input type="range" class="form-range" id="signatureWidth" value="200" min="50" max="800" step="1">
+                    </div>
+                    
+                    <div class="mb-3" id="signaturePositionContainer" style="display: none;">
+                        <label class="form-label">Signature Position</label>
+                        <select class="form-select" id="signaturePosition">
+                            <option value="bottom-right">Bottom Right</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="top-right">Top Right</option>
+                            <option value="top-left">Top Left</option>
+                            <option value="center">Center</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="compressImage">
+                        <label class="form-check-label" for="compressImage">
+                            <strong>Compress image to specific size</strong>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3" id="compressSizeContainer" style="display: none;">
+                        <label class="form-label">Target Size (KB)</label>
+                        <input type="number" class="form-control" id="targetSize" value="100" min="10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-success btn-lg" id="downloadBtn" style="display: none;">
+                    💾 Download Result
+                </button>
+            </div>
+
+            <div class="mt-5" id="resultContainer" style="display: none;">
+                <h4 class="section-title">Final Result</h4>
+                <div class="text-center">
+                    <canvas id="finalCanvas"></canvas>
+                    <p class="mt-3" id="fileSizeInfo"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var photoImg = null;
+        var signatureImg = null;
+        var DPI = 96;
+
+        function convertToPixels(value, unit) {
+            if (unit === 'px') return value;
+            if (unit === 'cm') return (value * DPI) / 2.54;
+            if (unit === 'inch') return value * DPI;
+            return value;
+        }
+
+        document.getElementById('photoInput').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    photoImg = new Image();
+                    photoImg.onload = function() {
+                        updateLivePreview();
+                    };
+                    photoImg.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('signatureInput').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    signatureImg = new Image();
+                    signatureImg.onload = function() {
+                        updateLivePreview();
+                    };
+                    signatureImg.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('unitType').addEventListener('change', function() {
+            var unit = this.value;
+            document.getElementById('widthUnit').textContent = unit;
+            document.getElementById('heightUnit').textContent = unit;
+            document.getElementById('sigWidthUnitLabel').textContent = unit;
+            updateLivePreview();
+        });
+
+        document.getElementById('signatureWidth').addEventListener('input', function() {
+            document.getElementById('sigWidthValue').textContent = this.value;
+            updateLivePreview();
+        });
+
+        document.getElementById('overlapSignature').addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('signatureWidthContainer').style.display = 'block';
+                document.getElementById('signaturePositionContainer').style.display = 'block';
+            } else {
+                document.getElementById('signatureWidthContainer').style.display = 'none';
+                document.getElementById('signaturePositionContainer').style.display = 'none';
+            }
+            updateLivePreview();
+        });
+
+        document.getElementById('compressImage').addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('compressSizeContainer').style.display = 'block';
+            } else {
+                document.getElementById('compressSizeContainer').style.display = 'none';
+            }
+        });
+
+        document.getElementById('outputWidth').addEventListener('input', updateLivePreview);
+        document.getElementById('outputHeight').addEventListener('input', updateLivePreview);
+        document.getElementById('addBorder').addEventListener('change', updateLivePreview);
+        document.getElementById('signaturePosition').addEventListener('change', updateLivePreview);
+
+        function updateLivePreview() {
+            if (!photoImg && !signatureImg) return;
+            
+            var canvas = document.getElementById('livePreviewCanvas');
+            var ctx = canvas.getContext('2d');
+            
+            var unit = document.getElementById('unitType').value;
+            var widthInput = parseFloat(document.getElementById('outputWidth').value);
+            var heightInput = parseFloat(document.getElementById('outputHeight').value);
+            
+            var width = convertToPixels(widthInput, unit);
+            var height = convertToPixels(heightInput, unit);
+            
+            var borderWidth = document.getElementById('addBorder').checked ? 1 : 0;
+            var borderColor = '#000000';
+            var overlap = document.getElementById('overlapSignature').checked;
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            if (borderWidth > 0) {
+                ctx.fillStyle = borderColor;
+                ctx.fillRect(0, 0, width, height);
+            }
+            
+            if (overlap) {
+                var photoX = borderWidth;
+                var photoY = borderWidth;
+                var photoW = width - (borderWidth * 2);
+                var photoH = height - (borderWidth * 2);
+                
+                if (photoImg) {
+                    ctx.drawImage(photoImg, photoX, photoY, photoW, photoH);
+                }
+                
+                if (signatureImg) {
+                    var sigWidthInput = parseFloat(document.getElementById('signatureWidth').value);
+                    var sigWidth = convertToPixels(sigWidthInput, unit);
+                    var sigRatio = signatureImg.height / signatureImg.width;
+                    var sigHeight = sigWidth * sigRatio;
+                    var position = document.getElementById('signaturePosition').value;
+                    
+                    var sigX = 0;
+                    var sigY = 0;
+                    var padding = 20;
+                    
+                    if (position === 'bottom-right') {
+                        sigX = width - sigWidth - padding;
+                        sigY = height - sigHeight - padding;
+                    } else if (position === 'bottom-left') {
+                        sigX = padding;
+                        sigY = height - sigHeight - padding;
+                    } else if (position === 'top-right') {
+                        sigX = width - sigWidth - padding;
+                        sigY = padding;
+                    } else if (position === 'top-left') {
+                        sigX = padding;
+                        sigY = padding;
+                    } else if (position === 'center') {
+                        sigX = (width - sigWidth) / 2;
+                        sigY = (height - sigHeight) / 2;
+                    }
+                    
+                    ctx.drawImage(signatureImg, sigX, sigY, sigWidth, sigHeight);
+                }
+            } else {
+                var photoH = height / 2 - borderWidth;
+                
+                if (photoImg) {
+                    ctx.drawImage(photoImg, borderWidth, borderWidth, width - (borderWidth * 2), photoH);
+                }
+                
+                if (signatureImg) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(borderWidth, height / 2, width - (borderWidth * 2), height / 2 - borderWidth);
+                    
+                    var sigY = height / 2;
+                    var sigH = height / 2 - borderWidth;
+                    ctx.drawImage(signatureImg, borderWidth, sigY, width - (borderWidth * 2), sigH);
+                }
+            }
+            
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+            
+            if (document.getElementById('compressImage').checked) {
+                generateFinalResult();
+            }
+        }
+
+        function generateFinalResult() {
+            var canvas = document.getElementById('livePreviewCanvas');
+            var finalCanvas = document.getElementById('finalCanvas');
+            var finalCtx = finalCanvas.getContext('2d');
+            
+            finalCanvas.width = canvas.width;
+            finalCanvas.height = canvas.height;
+            finalCtx.drawImage(canvas, 0, 0);
+            
+            if (document.getElementById('compressImage').checked) {
+                compressToSize(finalCanvas);
+            } else {
+                document.getElementById('resultContainer').style.display = 'block';
+            }
+        }
+
+        function compressToSize(canvas) {
+            var targetSizeKB = parseInt(document.getElementById('targetSize').value);
+            var targetSizeBytes = targetSizeKB * 1024;
+            var quality = 0.95;
+            var dataUrl;
+            var bestDataUrl = null;
+            var bestSize = Infinity;
+            
+            function attemptCompress() {
+                dataUrl = canvas.toDataURL('image/jpeg', quality);
+                var currentSize = Math.round((dataUrl.length - 22) * 3 / 4);
+                
+                if (Math.abs(currentSize - targetSizeBytes) < Math.abs(bestSize - targetSizeBytes)) {
+                    bestDataUrl = dataUrl;
+                    bestSize = currentSize;
+                }
+                
+                if (currentSize > targetSizeBytes && quality > 0.05) {
+                    quality -= 0.02;
+                    setTimeout(attemptCompress, 10);
+                } else {
+                    displayResult(bestDataUrl);
+                }
+            }
+            
+            attemptCompress();
+        }
+
+        function displayResult(dataUrl) {
+            var sizeKB = Math.round((dataUrl.length - 22) * 3 / 4 / 1024);
+            document.getElementById('fileSizeInfo').innerHTML = '<strong>File Size:</strong> ' + sizeKB + ' KB';
+            document.getElementById('resultContainer').style.display = 'block';
+        }
+
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            var canvas = document.getElementById('livePreviewCanvas');
+            var link = document.createElement('a');
+            link.download = 'merged-photo-signature';
+            
+            if (document.getElementById('compressImage').checked) {
+                var targetSizeKB = parseInt(document.getElementById('targetSize').value);
+                var targetSizeBytes = targetSizeKB * 1024;
+                var quality = 0.95;
+                var bestDataUrl = null;
+                var bestSize = Infinity;
+                
+                function findBestQuality() {
+                    var dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    var currentSize = Math.round((dataUrl.length - 22) * 3 / 4);
+                    
+                    if (Math.abs(currentSize - targetSizeBytes) < Math.abs(bestSize - targetSizeBytes)) {
+                        bestDataUrl = dataUrl;
+                        bestSize = currentSize;
+                    }
+                    
+                    if (currentSize > targetSizeBytes && quality > 0.05) {
+                        quality -= 0.02;
+                        setTimeout(findBestQuality, 5);
+                    } else {
+                        link.href = bestDataUrl;
+                        link.download = 'merged-photo-signature.jpg';
+                        link.click();
+                    }
+                }
+                
+                findBestQuality();
+            } else {
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'merged-photo-signature.png';
+                link.click();
+            }
+        });
+    </script>
+</body>
+</html>
